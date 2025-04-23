@@ -48,7 +48,7 @@ d_layer = SubgroupDownsample(
     sub_group_type="dihedral",    # Subgroup type to downsample to
     subsampling_factor=2,         # Factor to reduce group by
     num_features=10,              # Number of input feature channels
-    generator="r-s",              # Generators for Cayley graph construction              # Computation device
+    generator="r-s",              # Generators for Cayley graph construction              
     dtype=torch.float32,          # Data type
     apply_antialiasing=True,      # Enable equivariant anti-aliasing
     anti_aliasing_kwargs={        # Anti-aliasing optimization params
@@ -86,4 +86,21 @@ model = get_model(
     }
 )
 ```
+# 🤔 Why This Matters?
 
+Traditional downsampling in the group-equivariant model creates aliasing and introduces  error. 
+
+Our method
+> Provides provable reconstruction guarantees via the group sampling theorem
+> Preserves symmetry guarantees
+> Reduces parameters while maintaining performance
+
+## 🔍 **Error Propagation Analysis**    
+Our anti-aliasing maintains lower error rates in deeper layers compared to naive subsampling. 🎯
+
+![Teaser Image](https://raw.githubusercontent.com/ashiq24/Group_Sampling/refs/heads/main/figs/error_prop.png) 
+
+## 🔄 **Faithful Feature Reconstruction
+We can perfectly reconstruct features corresponding to the discarded group elements during the subsampling process. This follows directly from the proposed Subgroup sampling theorem. 
+
+![Teaser Image](https://raw.githubusercontent.com/ashiq24/Group_Sampling/refs/heads/main/figs/recon.png) 
