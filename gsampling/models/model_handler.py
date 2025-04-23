@@ -46,15 +46,15 @@ def get_model(
         Gcnn: Configured Gcnn model.
     """
     if num_channels is None:
-        num_channels = [32, 64]
+        num_channels =  num_layers * [32]
     if kernel_sizes is None:
-        kernel_sizes = [7, 7]
+        kernel_sizes =  num_layers * [7]
     if dwn_group_types is None:
-        dwn_group_types = [["dihedral", "dihedral"], ["dihedral", "dihedral"]]
+        dwn_group_types =  num_layers * [["dihedral", "dihedral"]]
     if spatial_subsampling_factors is None:
-        spatial_subsampling_factors = [1, 2]
+        spatial_subsampling_factors =  num_layers * [1]
     if subsampling_factors is None:
-        subsampling_factors = [2, 1]
+        subsampling_factors = num_layers * [1]
     if layer_kwargs is None:
         layer_kwargs = {"dilation": 2}
     if antialiasing_kwargs is None:
