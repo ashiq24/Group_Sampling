@@ -1,10 +1,6 @@
-autograd==1.7.0
-black==25.1.0  # Only if you want to keep code formatting
+autograd>=1.7.0
 einops==0.8.1
 escnn @ git+https://github.com/QUVA-Lab/escnn@9ad44cc37d694d9c805c4fef4d16722a254b3bf2
-filelock==3.13.1
-fsspec==2024.6.1
-Jinja2==3.1.4
 lie_learn==0.0.2
 matplotlib
 networkx==3.3
@@ -15,9 +11,7 @@ requests==2.32.3
 scikit-learn
 scipy
 sympy==1.13.1
-torch==2.6.0+cu118
-torchaudio==2.6.0+cu118
-torchvision==0.21.0+cu118
-triton==3.2.0
-typing_extensions==4.12.2
+torch==2.6.0
+torchaudio==2.6.0
+torchvision==0.21.0
 nose2 
