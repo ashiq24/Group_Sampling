@@ -1,8 +1,5 @@
 from setuptools import setup, find_packages
 
-# Read requirements from requirements.txt
-with open('requirements.txt') as f:
-    required = f.read().splitlines()
 
 setup(
     name='gsampling',
@@ -14,7 +11,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/ashiq24/Group_Sampling',
     packages=find_packages(include=['gsampling', 'gsampling.*']),
-    install_requires=required,
+    install_requires=open('requirements.txt').read().splitlines(),
     include_package_data=True,
     classifiers=[
         'Programming Language :: Python :: 3',
