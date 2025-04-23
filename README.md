@@ -24,7 +24,7 @@ We present the first **group-equivariant downsampling** layer with built-in anti
 
 - Equivariant anti-aliasing filters learned via spectral optimization.
 
-- Seamless integration with existing G-CNN architectures.
+- Seamless integration with existing group equivariant architectures.
 
 ## 📦 Installation
 ```bash
