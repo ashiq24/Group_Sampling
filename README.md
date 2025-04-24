@@ -100,7 +100,7 @@ Our anti-aliasing maintains lower error rates in deeper layers compared to naive
 
 ![Teaser Image](https://raw.githubusercontent.com/ashiq24/Group_Sampling/refs/heads/main/figs/error_prop.png) 
 
-## 🔄 **Faithful Feature Reconstruction
+## 🔄 **Faithful Feature Reconstruction**
 We can perfectly reconstruct features corresponding to the discarded group elements during the subsampling process. This follows directly from the proposed Subgroup sampling theorem. 
 
 ![Teaser Image](https://raw.githubusercontent.com/ashiq24/Group_Sampling/refs/heads/main/figs/recon.png) 
