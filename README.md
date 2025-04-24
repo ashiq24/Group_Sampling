@@ -35,7 +35,7 @@ pip install -e .
 **External Dependencies:**  [ESCNN](https://github.com/QUVA-Lab/escnn) (for group operations)
 
 ## 🧪 Usage
-Performs subgroup subsampling based on the corresponding Cayley graph and performs equivariant anti-aliasing operation.
+Performs subgroup subsampling based on the corresponding Cayley graph and performs equivariant anti-aliasing operation. Applicable for any group equivariant architecture using the **regular representation** of groups.
 
 ![Teaser Image](https://raw.githubusercontent.com/ashiq24/Group_Sampling/refs/heads/main/figs/two-sub.png) 
 1. Basic Integration
