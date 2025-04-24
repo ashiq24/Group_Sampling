@@ -81,8 +81,8 @@ model = get_model(
     spatial_subsampling_factors=[2, 1, 1],  # Spatial downsampling factors
     num_classes=10,    # STL-10 has 10 classes
     antialiasing_kwargs={
-        "iterations": 100,  # Anti-aliasing optimization steps
-        "smoothness_loss_weight": 0.5  # Trade-off between equivariance and smoothness
+        "iterations": 100,  # number of optimization steps
+        "smoothness_loss_weight": 0.5  # smoothness weight
     }
 )
 ```
