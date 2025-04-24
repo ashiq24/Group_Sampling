@@ -28,8 +28,8 @@ We present the first **group-equivariant downsampling** layer with built-in anti
 
 ## 📦 Installation
 ```bash
-git clone https://github.com/yourusername/Group-Sampling.git
-cd Group-Sampling
+git clone https://github.com/yourusername/Group_Sampling.git
+cd Group_Sampling
 pip install -e .
 ```
 **External Dependencies:**  [ESCNN](https://github.com/QUVA-Lab/escnn) (for group operations)
