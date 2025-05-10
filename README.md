@@ -4,8 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![arXiv]( https://img.shields.io/badge/Openreview-red)](https://openreview.net/pdf?id=sOte83GogU)
 
-**Bridging Signal Processing and Group Equivariant Deep Learning**  
-*"Sampling theory meets symmetry preservation"*
+[![Hugging Face Blog](https://img.shields.io/badge/Hugging%20Face-Blog-orange?logo=huggingface&logoColor=white&style=for-the-badge)](https://huggingface.co/blog/ashiq24/group-sampling)
+
+
+
+**Bridging Signal Processing and Group Equivariant Deep Learning**  *"Sampling theory meets symmetry preservation"*
 
 ![Teaser Image](https://raw.githubusercontent.com/ashiq24/Group_Sampling/refs/heads/main/figs/anti-al.png) 
 
