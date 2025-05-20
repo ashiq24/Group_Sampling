@@ -31,7 +31,7 @@ We present the first **group-equivariant downsampling** layer with built-in anti
 
 ## 📦 Installation
 ```bash
-git clone https://github.com/yourusername/Group_Sampling.git
+git clone https://github.com/ashiq24/Group_Sampling.git
 cd Group_Sampling
 pip install -e .
 ```
