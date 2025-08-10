@@ -170,6 +170,7 @@ class Gcnn(nn.Module):
 
     def get_feature(self, x):
         for i in range(self.num_layers):
+            print(" at layer ", i, " x shape ", x.shape)
             x = self.conv_layers[i](x)
             x = torch.relu(x)
             if self.spatial_subsampling_factors[i] > 1:

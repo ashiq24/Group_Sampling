@@ -108,7 +108,6 @@ class SubgroupDownsample(nn.Module):
                 adjaceny_matrix=self.graphs.graph.adjacency_matrix,
                 basis=self.graphs.graph.fourier_basis,
                 subsample_nodes=self.graphs.subgroup_graph.nodes,
-                subsample_adjacency_matrix=self.graphs.subgroup_graph.adjacency_matrix,
                 sub_basis=self.graphs.subgroup_graph.fourier_basis,
                 dtype=self.dtype,
                 device=self.device,
@@ -121,19 +120,7 @@ class SubgroupDownsample(nn.Module):
             self.anti_aliaser = None
 
         # Initialize canonicalizer if applicable
-        if cannonicalize:
-            self.cannonicalize = Cannonicalizer(
-                group=group_type,
-                nodes_num=self.G.order(),
-                subgroup=sub_group_type,
-                sub_nodes_num=self.G_sub.order(),
-                in_channels=num_features,
-                dtype=self.dtype,
-                device=self.device,
-            )
-            self.cannonicalize.to(device=self.device, dtype=self.dtype)
-        else:
-            self.cannonicalize = None
+        self.cannonicalize = None
 
     def forward(self, x: torch.Tensor):
         """

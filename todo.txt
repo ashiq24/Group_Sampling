@@ -1,0 +1,170 @@
+TODO for Group_Sampling Refactor and Test Expansion
+
+References
+- ESCNN docs for API alignment: https://quva-lab.github.io/escnn/
+- See refactor plan: refactor.txt
+- See current code summary: project_description.txt
+- See technique guidance: technique_summery.txt
+
+Order of execution
+- Phase 1: Expand and harden tests (so refactors can be verified continuously)
+- Phase 2: Incremental refactor in small PR-sized steps with green tests
+
+PHASE 1 — Test expansion (must be done first)
+1) Test scaffolding and utilities
+   - [ ] Add tests/conftest.py with:
+     - Device/dtype parametrization helpers (cpu/cuda-if-available; float32/float64/cfloat/cdouble)
+     - Random seed fixture
+     - Tolerance constants (rtol, atol)
+   - [ ] Add tests/helpers.py with tensor layout helpers and small graph builders for unit tests
+
+2) Graphs and Fourier properties
+   - [ ] tests/test_graph_factory.py (initially targets existing DihedralGraph/CycleGraph via GraphConstructor)
+     - Build graphs for several sizes; validate node/edge counts; symmetry of adjacency
+     - Validate directed adjacency vs edges; smoother shape
+   - [ ] tests/test_fourier_basis.py
+     - Check unitary/orthonormal conditions of bases within tolerance for cycle/dihedral
+     - Check dimensions vs |G| and irreps dim sum
+   - [ ] tests/test_reynolds_operator.py
+     - Build Reynolds operator; eigenvalues include 1; projector P idempotent (P^2≈P)
+
+3) Anti-aliasing solvers and operator
+   - [ ] tests/test_aa_analytical_solver.py
+     - Validate S Φ_G M ≈ Φ_H for multiple (G→H) and factors
+     - Parametrize over dtype/device
+   - [ ] tests/test_aa_linear_solver.py
+     - Verify constraint satisfaction and decreasing objective
+     - With/without equivariance penalty
+   - [ ] tests/test_aa_operator_end2end.py
+     - Project random signals to bandlimited → sample → upsample; error < threshold
+     - Compare smooth operators: adjacency vs laplacian vs normalized laplacian
+
+4) Sampling strategies and upsampling
+   - [ ] tests/test_sampling_layer.py
+     - For current SamplingLayer: S correctness; pinv-based up_sample round-trip checks
+     - Pool mode shape and stride checks
+
+5) Canonicalizer
+   - [ ] tests/test_canonicalizer.py
+     - forward then backward should approximate identity
+     - Validate coset representative mapping rules for all supported group/subgroup pairs
+
+6) Layers and models integration
+   - [ ] tests/test_downsample_layer.py
+     - Compose canonicalizer (optional) + anti-aliaser (optional) + sampler; check shapes and reconstruction
+     - Equivariance smoke tests under group actions
+   - [ ] tests/test_rnconv_wrapper.py
+     - rnConv input/output shape, gradients through layer
+   - [ ] tests/test_gcnn_integration.py
+     - Multiple configs; forward pass; pooled shape; optional tiny training step
+
+7) Data loaders
+   - [ ] tests/test_mri_3d_loader.py
+     - Synthetic dataset shape and normalization checks
+     - Real loader fallback when directory empty; resize correctness
+
+8) Utilities and validations
+   - [ ] tests/test_tensor_layout.py
+     - Reshape round-trips; einsum strings yield expected shapes
+   - [ ] tests/test_validation_errors.py
+     - Invalid subsampling factors/generator combinations raise clear errors
+
+9) Cross-device/dtype matrix and determinism
+   - [ ] Parametrize critical tests over device and dtype (skip cuda if not available)
+   - [ ] Ensure deterministic seeds in tests using numpy/torch RNG
+
+10) CI, style, and coverage
+   - [ ] Add pre-commit (black, isort, ruff) and mypy; ensure tests pass
+   - [ ] Add pytest.ini or pyproject config; set min coverage threshold (e.g., 85%)
+
+Definition of Done (Phase 1)
+- All new tests pass on CPU; CUDA tests skipped if unavailable
+- Coverage >= threshold; CI green locally
+
+PHASE 2 — Refactor actions (incremental, each step must keep tests green)
+1) Create new module layout (skeleton only)
+   - [ ] Add directories per refactor.txt: core/graphs, core/fourier, core/groups, aa/, sampling/, canonical/, utils/, vendor/
+   - [ ] Add __init__.py files; add basic docstrings
+
+2) Abstract graph interface and factory
+   - [ ] core/graphs/base.py: define AbstractGroupGraph (properties, build_graph, get_basis, get_irreps, get_reynolds)
+   - [ ] core/graphs/cyclic.py: move CycleGraph implementation; conform to base
+   - [ ] core/graphs/dihedral.py: move DihedralGraph implementation; conform to base
+   - [ ] core/graphs/factory.py: GraphFactory.from_spec(group_type, nodes, generator)
+   - [ ] Wire existing GraphConstructor to use GraphFactory under the hood (no behavior change)
+
+3) Split GraphConstructor responsibilities
+   - [ ] core/fourier/basis.py: ESCNNBasisProvider (build Φ from escnn groups)
+   - [ ] core/fourier/reynolds.py: ReynoldsOperatorBuilder (kron-based build)
+   - [ ] core/fourier/sampling.py: SamplingMatrixBuilder (S from nodes/subsample_nodes)
+   - [ ] Refactor GraphConstructor to delegate to these providers (preserve API)
+
+4) Smoothness operators
+   - [ ] core/fourier/smooth_ops.py: AdjacencyOp, LaplacianOp, NormalizedLaplacianOp, CustomShiftOp
+   - [ ] Update AntiAliasing to consume a SmoothnessOp instead of inline logic
+
+5) Anti-aliasing solvers and operator
+   - [ ] aa/solvers/base.py: AntiAliasingSolver.fit(FB, F, S, L, R) → M
+   - [ ] aa/solvers/analytical.py: pinv solver
+   - [ ] aa/solvers/linear_opt.py: SciPy-based constrained solver (move code from layer)
+   - [ ] aa/operators.py: AntiAliasingOperator (wraps basis, S, L, R, M, L1; exposes anti_aliase, up_sample)
+   - [ ] aa/config.py: dataclass for AA settings
+   - [ ] Switch gsampling.layers.downsampling to use AntiAliasingOperator (keep behavior)
+
+6) Canonicalizer rename and cleanup
+   - [ ] canonical/canonicalizer.py: move class; fix typos; add docstrings, type hints
+   - [ ] Provide deprecation shim from old path; emit DeprecationWarning
+   - [ ] Update imports throughout codebase
+
+7) Sampling strategies
+   - [ ] sampling/strategies.py: Strategy base, SampleStrategy, PoolStrategy
+   - [ ] sampling/sampling_layer.py: delegate to strategies; keep old API surface
+   - [ ] Update downsampling to import from new module
+
+8) Centralize group/subgroup rules
+   - [ ] core/groups.py: GroupSpec, SubgroupSpec, SubsamplingRule, element mapping (move get_sub_group_element)
+   - [ ] Normalize naming (cycle vs cyclic) and remove/define 'adihedral' explicitly
+   - [ ] Replace scattered assertions with ValidationError carrying helpful messages
+
+9) Utilities and constants
+   - [ ] utils/tensor_layout.py: reshape helpers and validated einsum strings
+   - [ ] utils/registry.py: simple plugin registry (for groups, strategies)
+   - [ ] utils/logging.py: project logger; replace prints with logging across modules
+
+10) Strong typing and enums
+   - [ ] Add type hints across public APIs; enable mypy in CI (allow gradual typing)
+   - [ ] Introduce Enums for group types, sampling types, smooth operators; deprecate raw strings
+
+11) Device/dtype policy and buffers
+   - [ ] Audit buffer registration; ensure all long-lived tensors are registered with correct dtype/device
+   - [ ] Add helper to move related buffers together; minimize implicit casts
+
+12) Performance and caching
+   - [ ] Cache Fourier bases, Reynolds, and S keyed by GroupSpec/SubgroupSpec (functools.lru_cache)
+   - [ ] Optional: environment flag to disable cache for debugging
+
+13) Public API at package root
+   - [ ] Re-export stable entry points in gsampling/__init__.py (GraphFactory, AntiAliasingOperator, SamplingLayer, Canonicalizer, rnConv, Downsample, get_model)
+   - [ ] Maintain backwards-compatible imports for one release; add deprecation tests
+
+14) Docs and metadata
+   - [ ] Update README: new architecture overview; extension guide (add group in N steps); ESCNN notes with link
+   - [ ] Add CONTRIBUTING.md; CODE_OF_CONDUCT.md; bump version in setup.py
+   - [ ] Pin escnn version in requirements.txt compatible with current APIs
+
+15) CI and pre-commit
+   - [ ] Add GitHub Actions workflow for lint, type, tests
+   - [ ] Add pre-commit with black, isort, ruff; configure ruff rules; mypy config
+
+16) Sweep and remove deprecated shims (after one release cycle)
+   - [ ] Remove old module names; update tests to fail on deprecated imports
+
+Definition of Done (Phase 2)
+- All steps merged incrementally with green tests
+- No public API break without deprecation period; docs updated
+- Coverage maintained or improved
+
+Notes
+- Keep PRs small (1–2 refactor steps + tests) to minimize risk
+- Use ESCNN abstractions per docs to avoid API drift: https://quva-lab.github.io/escnn/
+
