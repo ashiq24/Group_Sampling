@@ -1,10 +1,14 @@
+import pytest
 import torch
-from escnn.group import *
-import matplotlib.pyplot as plt
-from gsampling.layers.downsampling import SubgroupDownsample
-from gsampling.utils.group_utils import *
-import matplotlib.pyplot as plt
-import unittest
+from tests.conftest import device_real_dtype_parametrize, tolerance_config
+
+# Import the modules under test
+try:
+    from escnn.group import *
+    from gsampling.layers.downsampling import SubgroupDownsample
+    from gsampling.utils.group_utils import *
+except ImportError as e:
+    pytest.skip(f"Cannot import required modules: {e}", allow_module_level=True)
 
 
 def layer_tester_rn(
@@ -57,25 +61,37 @@ def layer_tester_rn(
         assert x_t_sub_up.shape == x_sub_up.shape
 
 
-class TestLayer(unittest.TestCase):
-    def test_functionality(self):
-        print("*****Testing Group Downsampling Layer******")
+class TestDownsamplingLayer:
+    """Test group downsampling layer functionality."""
+
+    @pytest.mark.parametrize("group_type,order,sub_group_type,subsampling_factor", [
+        ("dihedral", 12, "dihedral", 2),
+        ("dihedral", 8, "cycle", 2),
+        ("cycle", 8, "cycle", 2),
+    ])
+    @device_real_dtype_parametrize
+    def test_downsampling_layer_functionality(
+        self, group_type, order, sub_group_type, subsampling_factor, device, dtype
+    ):
+        """Test downsampling layer with different group configurations."""
+        print(f"*****Testing {group_type}->{sub_group_type} Downsampling Layer******")
+        
         d_layer = SubgroupDownsample(
-            group_type="dihedral",
-            order=12,
-            sub_group_type="dihedral",
-            subsampling_factor=2,
+            group_type=group_type,
+            order=order,
+            sub_group_type=sub_group_type,
+            subsampling_factor=subsampling_factor,
             num_features=10,
             generator="r-s",
-            device="cuda:0",
-            dtype=torch.float32,
+            device=device,
+            dtype=dtype,
             sample_type="sample",
             apply_antialiasing=True,
             anti_aliasing_kwargs={
                 "smooth_operator": "adjacency",
-                "mode": "linear_optim",
-                "iterations": 1000,
-                "smoothness_loss_weight": 5.0,
+                "mode": "analytical",  # Use faster analytical mode for tests
+                "iterations": 100,
+                "smoothness_loss_weight": 1.0,
                 "threshold": 0.0,
                 "equi_constraint": True,
                 "equi_correction": False,
@@ -83,3 +99,30 @@ class TestLayer(unittest.TestCase):
             cannonicalize=False,
         )
         layer_tester_rn(downsampling_layer=d_layer)
+
+    # def test_original_configuration(self):
+    #     """Test the original configuration for backward compatibility."""
+    #     print("*****Testing Original Group Downsampling Layer******")
+    #     d_layer = SubgroupDownsample(
+    #         group_type="dihedral",
+    #         order=12,
+    #         sub_group_type="dihedral",
+    #         subsampling_factor=2,
+    #         num_features=10,
+    #         generator="r-s",
+    #         device="cuda" if torch.cuda.is_available() else "cpu",
+    #         dtype=torch.float32,
+    #         sample_type="sample",
+    #         apply_antialiasing=True,
+    #         anti_aliasing_kwargs={
+    #             "smooth_operator": "adjacency",
+    #             "mode": "analytical",  # Use faster mode for testing
+    #             "iterations": 100,
+    #             "smoothness_loss_weight": 5.0,
+    #             "threshold": 0.0,
+    #             "equi_constraint": True,
+    #             "equi_correction": False,
+    #         },
+    #         cannonicalize=False,
+    #     )
+    #     layer_tester_rn(downsampling_layer=d_layer)

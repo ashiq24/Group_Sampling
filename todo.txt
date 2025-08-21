@@ -1,170 +1,175 @@
-TODO for Group_Sampling Refactor and Test Expansion
+# Minimal Refactoring for 3D Group Extension (Tetrahedral, Octahedral, Icosahedral)
 
-References
-- ESCNN docs for API alignment: https://quva-lab.github.io/escnn/
-- See refactor plan: refactor.txt
-- See current code summary: project_description.txt
-- See technique guidance: technique_summery.txt
+## Analysis Summary
+Current implementation is hardcoded for 2D groups (cyclic, dihedral) with:
+- Hardcoded group type checks in multiple files
+- Group-specific graph construction logic embedded in classes
+- ESCNN integration limited to 2D gspaces (rot2dOnR2, flipRot2dOnR2)
+- Subsampling logic specific to 2D group structures
 
-Order of execution
-- Phase 1: Expand and harden tests (so refactors can be verified continuously)
-- Phase 2: Incremental refactor in small PR-sized steps with green tests
+## Proposed Minimal Refactoring (Absolutely Necessary)
 
-PHASE 1 — Test expansion (must be done first)
-1) Test scaffolding and utilities
-   - [ ] Add tests/conftest.py with:
-     - Device/dtype parametrization helpers (cpu/cuda-if-available; float32/float64/cfloat/cdouble)
-     - Random seed fixture
-     - Tolerance constants (rtol, atol)
-   - [ ] Add tests/helpers.py with tensor layout helpers and small graph builders for unit tests
+### 1. Abstract Group Graph Interface ⭐ CRITICAL
+**Files to change:**
+- `gsampling/utils/graph_constructors.py`
+- Create: `gsampling/core/graphs/base.py`
 
-2) Graphs and Fourier properties
-   - [ ] tests/test_graph_factory.py (initially targets existing DihedralGraph/CycleGraph via GraphConstructor)
-     - Build graphs for several sizes; validate node/edge counts; symmetry of adjacency
-     - Validate directed adjacency vs edges; smoother shape
-   - [ ] tests/test_fourier_basis.py
-     - Check unitary/orthonormal conditions of bases within tolerance for cycle/dihedral
-     - Check dimensions vs |G| and irreps dim sum
-   - [ ] tests/test_reynolds_operator.py
-     - Build Reynolds operator; eigenvalues include 1; projector P idempotent (P^2≈P)
+**Why absolutely necessary:**
+- Current: `if group_type == "dihedral"` hardcoded checks prevent 3D group addition
+- 3D groups (tetrahedral=24 elements, octahedral=48 elements) have completely different:
+  - Edge connectivity patterns (not simple cycles or reflections)
+  - Generator sets (3D rotations, not 2D rotations+reflections)
+  - Irrep structures (3D irreps vs 1D/2D irreps)
 
-3) Anti-aliasing solvers and operator
-   - [ ] tests/test_aa_analytical_solver.py
-     - Validate S Φ_G M ≈ Φ_H for multiple (G→H) and factors
-     - Parametrize over dtype/device
-   - [ ] tests/test_aa_linear_solver.py
-     - Verify constraint satisfaction and decreasing objective
-     - With/without equivariance penalty
-   - [ ] tests/test_aa_operator_end2end.py
-     - Project random signals to bandlimited → sample → upsample; error < threshold
-     - Compare smooth operators: adjacency vs laplacian vs normalized laplacian
+**Minimal change:**
+```python
+# Abstract interface all groups must implement
+class AbstractGroupGraph:
+    def get_basis(self, order: int) -> np.ndarray: pass
+    def get_irreps(self, order: int): pass  
+    def get_equi_raynold(self, order: int) -> np.ndarray: pass
+    # Properties: nodes, edges, adjacency_matrix, directed_adjacency_matrix, smoother, fourier_basis
 
-4) Sampling strategies and upsampling
-   - [ ] tests/test_sampling_layer.py
-     - For current SamplingLayer: S correctness; pinv-based up_sample round-trip checks
-     - Pool mode shape and stride checks
+# Factory to avoid hardcoded if/elif chains
+class GroupGraphFactory:
+    @staticmethod
+    def create(group_type: str, nodes: list, generator: str = None) -> AbstractGroupGraph:
+        if group_type == "cycle": return CycleGraph(nodes)
+        elif group_type == "dihedral": return DihedralGraph(nodes, generator)
+        elif group_type == "tetrahedral": return TetrahedralGraph(nodes)  # NEW
+        elif group_type == "octahedral": return OctahedralGraph(nodes)    # NEW
+        else: raise NotImplementedError(f"Group type {group_type}")
+```
 
-5) Canonicalizer
-   - [ ] tests/test_canonicalizer.py
-     - forward then backward should approximate identity
-     - Validate coset representative mapping rules for all supported group/subgroup pairs
+### 2. ESCNN Group Registry ⭐ CRITICAL  
+**Files to change:**
+- `gsampling/utils/group_utils.py`
 
-6) Layers and models integration
-   - [ ] tests/test_downsample_layer.py
-     - Compose canonicalizer (optional) + anti-aliaser (optional) + sampler; check shapes and reconstruction
-     - Equivariance smoke tests under group actions
-   - [ ] tests/test_rnconv_wrapper.py
-     - rnConv input/output shape, gradients through layer
-   - [ ] tests/test_gcnn_integration.py
-     - Multiple configs; forward pass; pooled shape; optional tiny training step
+**Why absolutely necessary:**
+- Current: Hardcoded `gspaces.rot2dOnR2(order)` and `gspaces.flipRot2dOnR2(order)`
+- 3D groups need: `gspaces.rot3dOnR3()`, `gspaces.flipRot3dOnR3()`, or custom 3D gspaces
+- ESCNN may not have built-in tetrahedral/octahedral gspaces - need extensible registry
 
-7) Data loaders
-   - [ ] tests/test_mri_3d_loader.py
-     - Synthetic dataset shape and normalization checks
-     - Real loader fallback when directory empty; resize correctness
+**Minimal change:**
+```python
+# Registry pattern for group types
+GROUP_REGISTRY = {
+    "cycle": {"escnn_func": cyclic_group, "gspace_func": lambda order: gspaces.rot2dOnR2(order)},
+    "dihedral": {"escnn_func": dihedral_group, "gspace_func": lambda order: gspaces.flipRot2dOnR2(order)},
+    "tetrahedral": {"escnn_func": tetrahedral_group, "gspace_func": lambda order: gspaces.rot3dOnR3()},  # NEW
+    "octahedral": {"escnn_func": octahedral_group, "gspace_func": lambda order: gspaces.rot3dOnR3()},    # NEW
+}
 
-8) Utilities and validations
-   - [ ] tests/test_tensor_layout.py
-     - Reshape round-trips; einsum strings yield expected shapes
-   - [ ] tests/test_validation_errors.py
-     - Invalid subsampling factors/generator combinations raise clear errors
+def get_group(group_type: str, order: int):
+    if group_type not in GROUP_REGISTRY:
+        raise ValueError(f"Group type {group_type} not supported")
+    return GROUP_REGISTRY[group_type]["escnn_func"](order)
+```
 
-9) Cross-device/dtype matrix and determinism
-   - [ ] Parametrize critical tests over device and dtype (skip cuda if not available)
-   - [ ] Ensure deterministic seeds in tests using numpy/torch RNG
+### 3. Subsampling Strategy Registry ⭐ CRITICAL
+**Files to change:**
+- `gsampling/utils/graph_constructors.py` (subsample function)
 
-10) CI, style, and coverage
-   - [ ] Add pre-commit (black, isort, ruff) and mypy; ensure tests pass
-   - [ ] Add pytest.ini or pyproject config; set min coverage threshold (e.g., 85%)
+**Why absolutely necessary:**
+- Current: Hardcoded subsampling logic for dihedral→dihedral, dihedral→cycle, cycle→cycle
+- 3D groups have complex subgroup relationships:
+  - Tetrahedral → Cyclic (C3 rotations around vertex-face axis)
+  - Octahedral → Tetrahedral, Octahedral → Dihedral (face rotations), Octahedral → Cyclic
+  - Need flexible subsampling strategies, not hardcoded arithmetic
 
-Definition of Done (Phase 1)
-- All new tests pass on CPU; CUDA tests skipped if unavailable
-- Coverage >= threshold; CI green locally
+**Minimal change:**
+```python
+# Strategy pattern for subsampling
+SUBSAMPLING_STRATEGIES = {
+    ("cycle", "cycle"): lambda nodes, factor: nodes[::factor],
+    ("dihedral", "dihedral"): lambda nodes, factor: nodes[::factor], 
+    ("dihedral", "cycle"): lambda nodes, factor: nodes[:len(nodes)//2:factor//2],
+    ("tetrahedral", "cycle"): tetrahedral_to_cycle_subsample,     # NEW
+    ("octahedral", "tetrahedral"): octahedral_to_tetrahedral_subsample,  # NEW
+}
 
-PHASE 2 — Refactor actions (incremental, each step must keep tests green)
-1) Create new module layout (skeleton only)
-   - [ ] Add directories per refactor.txt: core/graphs, core/fourier, core/groups, aa/, sampling/, canonical/, utils/, vendor/
-   - [ ] Add __init__.py files; add basic docstrings
+def subsample(group_size, group_type, group_generator, subgroup_type, subsampling_factor):
+    key = (group_type, subgroup_type)
+    if key not in SUBSAMPLING_STRATEGIES:
+        raise NotImplementedError(f"Subsampling {group_type} → {subgroup_type}")
+    return SUBSAMPLING_STRATEGIES[key](list(range(group_size)), subsampling_factor)
+```
 
-2) Abstract graph interface and factory
-   - [ ] core/graphs/base.py: define AbstractGroupGraph (properties, build_graph, get_basis, get_irreps, get_reynolds)
-   - [ ] core/graphs/cyclic.py: move CycleGraph implementation; conform to base
-   - [ ] core/graphs/dihedral.py: move DihedralGraph implementation; conform to base
-   - [ ] core/graphs/factory.py: GraphFactory.from_spec(group_type, nodes, generator)
-   - [ ] Wire existing GraphConstructor to use GraphFactory under the hood (no behavior change)
+### 4. 3D Group Implementation Stubs ⭐ NECESSARY
+**Files to create:**
+- `gsampling/core/graphs/tetrahedral.py`
+- `gsampling/core/graphs/octahedral.py`
 
-3) Split GraphConstructor responsibilities
-   - [ ] core/fourier/basis.py: ESCNNBasisProvider (build Φ from escnn groups)
-   - [ ] core/fourier/reynolds.py: ReynoldsOperatorBuilder (kron-based build)
-   - [ ] core/fourier/sampling.py: SamplingMatrixBuilder (S from nodes/subsample_nodes)
-   - [ ] Refactor GraphConstructor to delegate to these providers (preserve API)
+**Why necessary:**
+- Need concrete implementations of 3D group graphs
+- Must implement AbstractGroupGraph interface
+- Critical methods: `get_basis()`, `get_irreps()`, `get_equi_raynold()`
 
-4) Smoothness operators
-   - [ ] core/fourier/smooth_ops.py: AdjacencyOp, LaplacianOp, NormalizedLaplacianOp, CustomShiftOp
-   - [ ] Update AntiAliasing to consume a SmoothnessOp instead of inline logic
+**Minimal implementation:**
+```python
+class TetrahedralGraph(AbstractGroupGraph):
+    def __init__(self, nodes: list):
+        self.nodes = nodes
+        self._build_tetrahedral_cayley_graph()
+        self.fourier_basis = self.get_basis(24)  # T has 24 elements
+        self.equi_raynold_op = self.get_equi_raynold(24)
+    
+    def get_basis(self, order: int) -> np.ndarray:
+        # Use ESCNN tetrahedral irreps or implement custom 3D irreps
+        pass
+    
+    def get_equi_raynold(self, order: int) -> np.ndarray:
+        # Implement R = (1/|G|) Σ_{g∈G} ρ(g) ⊗ ρ(g⁻¹)ᵀ for tetrahedral group
+        pass
+```
 
-5) Anti-aliasing solvers and operator
-   - [ ] aa/solvers/base.py: AntiAliasingSolver.fit(FB, F, S, L, R) → M
-   - [ ] aa/solvers/analytical.py: pinv solver
-   - [ ] aa/solvers/linear_opt.py: SciPy-based constrained solver (move code from layer)
-   - [ ] aa/operators.py: AntiAliasingOperator (wraps basis, S, L, R, M, L1; exposes anti_aliase, up_sample)
-   - [ ] aa/config.py: dataclass for AA settings
-   - [ ] Switch gsampling.layers.downsampling to use AntiAliasingOperator (keep behavior)
+## Non-Essential Refactoring (Can be deferred)
 
-6) Canonicalizer rename and cleanup
-   - [ ] canonical/canonicalizer.py: move class; fix typos; add docstrings, type hints
-   - [ ] Provide deprecation shim from old path; emit DeprecationWarning
-   - [ ] Update imports throughout codebase
+### 5. Canonicalizer 3D Support (Optional)
+**Files:** `gsampling/layers/cannonicalizer.py`
+**Why optional:** Only needed if canonicalization is required for 3D groups
 
-7) Sampling strategies
-   - [ ] sampling/strategies.py: Strategy base, SampleStrategy, PoolStrategy
-   - [ ] sampling/sampling_layer.py: delegate to strategies; keep old API surface
-   - [ ] Update downsampling to import from new module
+### 6. Model Handler Updates (Optional)  
+**Files:** `gsampling/models/model_handler.py`, `gsampling/models/g_cnn.py`
+**Why optional:** Can reuse existing model structure; only need group type registry updates
 
-8) Centralize group/subgroup rules
-   - [ ] core/groups.py: GroupSpec, SubgroupSpec, SubsamplingRule, element mapping (move get_sub_group_element)
-   - [ ] Normalize naming (cycle vs cyclic) and remove/define 'adihedral' explicitly
-   - [ ] Replace scattered assertions with ValidationError carrying helpful messages
+### 7. Test Infrastructure (Optional but Recommended)
+**Files:** `tests/fourier_tester.py`, `tests/layer_tester.py`
+**Why optional:** Current tests will work with new groups via parametrization
 
-9) Utilities and constants
-   - [ ] utils/tensor_layout.py: reshape helpers and validated einsum strings
-   - [ ] utils/registry.py: simple plugin registry (for groups, strategies)
-   - [ ] utils/logging.py: project logger; replace prints with logging across modules
+## Implementation Priority
 
-10) Strong typing and enums
-   - [ ] Add type hints across public APIs; enable mypy in CI (allow gradual typing)
-   - [ ] Introduce Enums for group types, sampling types, smooth operators; deprecate raw strings
+### Phase 1: Core Extension Points (Absolutely Necessary)
+1. **AbstractGroupGraph interface** - Enables polymorphic group handling
+2. **GroupGraphFactory** - Eliminates hardcoded group type checks  
+3. **Group registry in group_utils.py** - Supports new ESCNN group types
+4. **Subsampling strategy registry** - Handles complex 3D subgroup relationships
 
-11) Device/dtype policy and buffers
-   - [ ] Audit buffer registration; ensure all long-lived tensors are registered with correct dtype/device
-   - [ ] Add helper to move related buffers together; minimize implicit casts
+### Phase 2: 3D Group Implementations (Necessary)
+1. **TetrahedralGraph class** - 24-element tetrahedral group T
+2. **OctahedralGraph class** - 48-element octahedral group O  
+3. **3D subsampling strategies** - Group-specific subsampling algorithms
 
-12) Performance and caching
-   - [ ] Cache Fourier bases, Reynolds, and S keyed by GroupSpec/SubgroupSpec (functools.lru_cache)
-   - [ ] Optional: environment flag to disable cache for debugging
+### Phase 3: Integration and Testing (Recommended)
+1. **Update model handlers** - Support 3D group types in model configs
+2. **Extend test parametrization** - Add 3D groups to existing test suites
+3. **3D-specific tests** - Validate 3D group mathematical properties
 
-13) Public API at package root
-   - [ ] Re-export stable entry points in gsampling/__init__.py (GraphFactory, AntiAliasingOperator, SamplingLayer, Canonicalizer, rnConv, Downsample, get_model)
-   - [ ] Maintain backwards-compatible imports for one release; add deprecation tests
+## Estimated Effort
+- **Phase 1:** ~200 lines of refactoring existing code
+- **Phase 2:** ~400-600 lines of new 3D group implementations  
+- **Phase 3:** ~100-200 lines of integration and testing
 
-14) Docs and metadata
-   - [ ] Update README: new architecture overview; extension guide (add group in N steps); ESCNN notes with link
-   - [ ] Add CONTRIBUTING.md; CODE_OF_CONDUCT.md; bump version in setup.py
-   - [ ] Pin escnn version in requirements.txt compatible with current APIs
+## Key Benefits
+- **Minimal disruption:** Existing 2D group functionality unchanged
+- **Clean extension:** New groups implement standard interface
+- **Future-proof:** Framework supports arbitrary finite groups
+- **Maintainable:** Group-specific logic isolated in dedicated classes
 
-15) CI and pre-commit
-   - [ ] Add GitHub Actions workflow for lint, type, tests
-   - [ ] Add pre-commit with black, isort, ruff; configure ruff rules; mypy config
+## Critical Success Factors
+1. **ESCNN 3D support:** Verify ESCNN has tetrahedral/octahedral group objects
+2. **3D irrep knowledge:** Need 3D irreducible representations for Fourier bases
+3. **Subgroup theory:** Understand tetrahedral/octahedral subgroup lattices
+4. **Testing strategy:** Validate 3D group mathematical properties
 
-16) Sweep and remove deprecated shims (after one release cycle)
-   - [ ] Remove old module names; update tests to fail on deprecated imports
-
-Definition of Done (Phase 2)
-- All steps merged incrementally with green tests
-- No public API break without deprecation period; docs updated
-- Coverage maintained or improved
-
-Notes
-- Keep PRs small (1–2 refactor steps + tests) to minimize risk
-- Use ESCNN abstractions per docs to avoid API drift: https://quva-lab.github.io/escnn/
-
+This refactoring is **absolutely necessary** because the current hardcoded approach cannot accommodate 3D groups without modifying core logic throughout the codebase.
