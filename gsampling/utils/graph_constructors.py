@@ -1,5 +1,6 @@
 import numpy as np
 from escnn.group import *
+from ..core.graphs.factory import GroupGraphFactory
 
 
 def subsample(
@@ -68,12 +69,9 @@ class GraphConstructor:
         self._subgroup_type = ["cycle", "dihedral", "cyclic"]
 
         self.nodes = [i for i in range(group_size)]
-        if self.group_type == "dihedral":
-            self.graph = DihedralGraph(self.nodes, group_generator)
-        elif self.group_type in ["cycle", "cyclic"]:
-            self.graph = CycleGraph(self.nodes)
-        else:
-            raise NotImplementedError
+        
+        # Use factory to create group graph (enables extension to new groups)
+        self.graph = GroupGraphFactory.create(self.group_type, self.nodes, group_generator)
 
         ## Sub group Sampling algorithm
 
@@ -85,15 +83,19 @@ class GraphConstructor:
             self.subsampling_factor,
         )
 
-        if self.subgroup_type in ["cycle", "cyclic"]:
-            self.subgroup_graph = CycleGraph(subsampled_nodes)
-        elif self.subgroup_type == "dihedral":
-            self.subgroup_graph = DihedralGraph(subsampled_nodes, group_generator)
-        else:
-            raise NotImplementedError
+        # Use factory to create subgroup graph (enables extension to new groups)
+        self.subgroup_graph = GroupGraphFactory.create(self.subgroup_type, subsampled_nodes, group_generator)
 
 
-class DihedralGraph:
+# Legacy DihedralGraph and CycleGraph classes moved to gsampling/core/graphs/
+# Import them for backward compatibility
+from ..core.graphs.dihedral import DihedralGraph
+from ..core.graphs.cyclic import CycleGraph
+
+# The old implementations below are deprecated and will be removed
+# TODO: Remove these after ensuring all imports are updated
+
+class _LegacyDihedralGraph:
     """
     nodes starts from 0
     nodes are connecte to elemmets of Dihedral group
@@ -253,7 +255,7 @@ class DihedralGraph:
         return equi_rey
 
 
-class CycleGraph:
+class _LegacyCycleGraph:
     def __init__(self, nodes: list, generator: str = None):
         self.nodes = nodes
         group_size = len(nodes)
