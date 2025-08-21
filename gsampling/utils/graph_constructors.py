@@ -1,6 +1,7 @@
 import numpy as np
 from escnn.group import *
 from ..core.graphs.factory import GroupGraphFactory
+from ..core.subsampling import subsample_with_strategy
 
 
 def subsample(
@@ -10,30 +11,25 @@ def subsample(
     subgroup_type: str,
     subsampling_factor: int,
 ):
-    nodes = [i for i in range(group_size)]
-    if group_type == "dihedral":
-        if subgroup_type == "dihedral":
-            assert group_generator == "r-s"
-            sub_sample_nodes = nodes[::subsampling_factor]
-        elif subgroup_type == "adihedral":
-            assert group_generator == "r-s"
-            sub_sample_nodes = (
-                nodes[: group_size // 2 : subsampling_factor]
-                + nodes[group_size // 2 + 1 :: subsampling_factor]
-            )
-        elif subgroup_type == "cycle":
-            assert subsampling_factor % 2 == 0
-            assert (group_size // 2) % (subsampling_factor // 2) == 0
-            subsampling_factor = subsampling_factor // 2
-            nodes = nodes[: group_size // 2]
-            sub_sample_nodes = nodes[::subsampling_factor]
-        else:
-            raise NotImplementedError
-    elif group_type == "cycle":
-        sub_sample_nodes = nodes[::subsampling_factor]
-    else:
-        raise NotImplementedError
-    return sub_sample_nodes
+    """
+    Subsample group elements using registered strategies.
+    
+    **Legacy Function:**
+    This function maintains backward compatibility while using the new
+    strategy registry internally. The old hardcoded logic has been
+    replaced with extensible strategy pattern.
+    
+    **Extension:**
+    New group transitions are supported by registering strategies
+    in the SubsamplingRegistry.
+    """
+    return subsample_with_strategy(
+        group_size=group_size,
+        group_type=group_type,
+        group_generator=group_generator,
+        subgroup_type=subgroup_type,
+        subsampling_factor=subsampling_factor
+    )
 
 
 class GraphConstructor:
