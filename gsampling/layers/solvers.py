@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from scipy.optimize import minimize, LinearConstraint
-
+import pdb
 
 def solve_M(
     *,
@@ -119,19 +119,20 @@ def solve_M(
 
         m_rows, m_cols = FG.shape[1], FH.shape[1]
         M_param = torch.nn.Parameter(torch.zeros(m_rows, m_cols, device=dev, dtype=work_dtype))
-        optim = torch.optim.Adam([M_param], lr=1e-2)
-        sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=50, factor=0.5)
+        optim = torch.optim.Adam([M_param], lr=1e-3)
+        sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=100, factor=0.5)
 
         best = None
         best_loss = float("inf")
-        equi_interval = 100
-        equi_weight = 0.01
-        for it in range(min(iterations, 2000)):
+        equi_interval = 50
+        equi_weight = 0.000001
+        for it in range(iterations):
             optim.zero_grad()
             recon = S @ FG @ M_param
             loss_recon = torch.mean((recon - FH).abs() ** 2)
             smooth = torch.trace(M_param.T @ FG.T @ L @ FG @ M_param).real
             loss = loss_recon + smoothness_loss_weight * smooth
+            print(f"[gpu_optim] iter={it} loss={loss.item():.6f} loss_recon={loss_recon.item():.6f} smooth={smooth.item():.6f}")
 
             if projector is not None and (it % equi_interval == 0):
                 eps = 1e-3
@@ -161,7 +162,7 @@ def solve_M(
             if loss.item() < best_loss:
                 best_loss = loss.item()
                 best = M_param.detach().clone()
-            if it % 100 == 0:
+            if it % 1000 == 0:
                 print(f"[gpu_optim] iter={it} loss={loss.item():.6f}")
 
         M_out = (best if best is not None else M_param.detach()).to(out_high_dtype, copy=True).cpu()

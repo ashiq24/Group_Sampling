@@ -4,7 +4,7 @@ import numpy as np
 from einops import rearrange
 from .helper import SmoothOperatorFactory, ReynoldsProjectorHelper, L1ProjectorUtils, FourierOps
 from .solvers import solve_M
-
+import pdb
 
 class AntiAliasingLayer(torch.nn.Module):
     def __init__(
@@ -149,12 +149,6 @@ class AntiAliasingLayer(torch.nn.Module):
                     self.equi_projector, self.L1_projector
                 )
 
-        # Already registered with correct dtype
-
-    # Removed old in-class smooth initializer (replaced by factory)
-
-    # Removed old Reynolds setup (replaced by helper)
-
     def _init_anti_aliasing_operator(self):
         """Learns spectral mapping between original and subsampled graph Fourier bases.
 
@@ -194,16 +188,13 @@ class AntiAliasingLayer(torch.nn.Module):
         self.register_buffer("L1_eigs", eigvecs)
         self.register_buffer("L1_projector", L1)
 
-    # Removed in-class l1_projector (moved to L1ProjectorUtils)
-
-    # Removed in-class equi_correction (use ReynoldsProjectorHelper.project)
 
     def _calculate_M(
         self,
         iterations=50000,
         device="cuda:0",
         smoothness_loss_weight=0.01,
-        mode="optim",
+        mode="analytical",
     ):
         if mode == "analytical":
             print("===Using Analytical Solution====")
@@ -430,41 +421,41 @@ class AntiAliasingLayer(torch.nn.Module):
         else:
             raise ValueError("Invalid mode: ", mode)
 
-    def _forward_f_transform(self, x, basis):
-        """Graph Fourier Transform: Projects spatial signals to spectral domain.
+    # def _forward_f_transform(self, x, basis):
+    #     """Graph Fourier Transform: Projects spatial signals to spectral domain.
 
-        Transform: X̂ = Bᵀx
-        Where B = conjugate transpose of graph Fourier basis
-        Handles batch-channel-group-spatial dimensions via Einstein summation
-        """
-        B = None
-        if self.dtype == torch.cfloat or self.dtype == torch.cdouble:
-            B = torch.transpose(torch.conj(basis), 0, 1)
-        elif self.dtype == torch.float or self.dtype == torch.float64:
-            B = torch.transpose(basis, 0, 1)
-        else:
-            raise ValueError("Invalid dtype: ", self.dtype)
+    #     Transform: X̂ = Bᵀx
+    #     Where B = conjugate transpose of graph Fourier basis
+    #     Handles batch-channel-group-spatial dimensions via Einstein summation
+    #     """
+    #     B = None
+    #     if self.dtype == torch.cfloat or self.dtype == torch.cdouble:
+    #         B = torch.transpose(torch.conj(basis), 0, 1)
+    #     elif self.dtype == torch.float or self.dtype == torch.float64:
+    #         B = torch.transpose(basis, 0, 1)
+    #     else:
+    #         raise ValueError("Invalid dtype: ", self.dtype)
 
-        if len(x.shape) == 1:
-            return torch.matmul(B, x.to(basis.dtype))
-        elif len(x.shape) == 5:
-            # assuming tensor of shape (batch, group_size, channel, height, width)
-            return torch.einsum("fg,bcghw->bcfhw", B, x.to(basis.dtype))
-        else:
-            raise ValueError("Invalid shape: ", x.shape)
+    #     if len(x.shape) == 1:
+    #         return torch.matmul(B, x.to(basis.dtype))
+    #     elif len(x.shape) == 5:
+    #         # assuming tensor of shape (batch, group_size, channel, height, width)
+    #         return torch.einsum("fg,bcghw->bcfhw", B, x.to(basis.dtype))
+    #     else:
+    #         raise ValueError("Invalid shape: ", x.shape)
 
-    def _inverse_f_transform(self, x, basis):
-        """Inverse Graph Fourier Transform: Reconstructs spatial from spectral components.
+    # def _inverse_f_transform(self, x, basis):
+    #     """Inverse Graph Fourier Transform: Reconstructs spatial from spectral components.
 
-        Inverse Transform: x = BX̂
-        """
-        if len(x.shape) == 1:
-            return torch.matmul(basis, x)
-        elif len(x.shape) == 5:
-            # assuming tensor of shape (batch, group_size , channel, height, width)
-            return torch.einsum("fg,bcghw->bcfhw", basis, x.to(basis.dtype))
-        else:
-            raise ValueError("Invalid shape: ", x.shape)
+    #     Inverse Transform: x = BX̂
+    #     """
+    #     if len(x.shape) == 1:
+    #         return torch.matmul(basis, x)
+    #     elif len(x.shape) == 5:
+    #         # assuming tensor of shape (batch, group_size , channel, height, width)
+    #         return torch.einsum("fg,bcghw->bcfhw", basis, x.to(basis.dtype))
+    #     else:
+    #         raise ValueError("Invalid shape: ", x.shape)
 
     def fft(self, x):
         return FourierOps.forward(x, self.basis, self.dtype)
@@ -515,8 +506,8 @@ class AntiAliasingLayer(torch.nn.Module):
         """
         if len(x.shape) == 4:
             x = rearrange(x, "b (c g) h w -> b c g h w", g=len(self.subsample_nodes))
-        xh = self._forward_f_transform(x, self.sub_basis)
-        x_upsampled = self._inverse_f_transform(xh, self.up_sampling_basis)
+        xh = FourierOps.forward(x, self.sub_basis, self.dtype)
+        x_upsampled = FourierOps.inverse(xh, self.up_sampling_basis)
         if len(x.shape) == 5:
             x_upsampled = rearrange(x_upsampled, "b c g h w -> b (c g) h w")
         return x_upsampled

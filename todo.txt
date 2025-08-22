@@ -1,0 +1,125 @@
+# TODO: 3D GCNN Implementation with Octahedral Groups
+# =====================================================
+
+## PHASE 1: 3D Anti-Aliasing Tests (Octahedral Groups)
+# -----------------------------------------------------
+# Test the anti-aliasing functionality for octahedral groups similar to test_claim_2.py
+
+### 1.1 Create 3D Claim 2 Test Script ⭐ HIGH PRIORITY
+- [ ] Create `tests/3d_claim_2.py` 
+- [ ] Implement `bandlimited_claim_helper_3d()` function
+- [ ] Support octahedral and full octahedral groups
+- [ ] Test bandlimited reconstruction property for 3D groups
+- [ ] Verify anti-aliasing operator works with 3D group Fourier bases
+- [ ] Test different subsampling strategies (O→C4, O_h→D4, O_h→O)
+
+### 1.2 Test 3D Anti-Aliasing Integration
+- [ ] Test AntiAliasingLayer with octahedral groups
+- [ ] Verify Reynolds operator construction for 3D groups
+- [ ] Test Fourier basis properties (unitary, orthogonal)
+- [ ] Validate equivariance constraints for 3D symmetries
+
+## PHASE 2: 3D Group Equivariant Convolution Support
+# --------------------------------------------------
+# Extend rnConv and group_utils to support 3D convolutions
+
+### 2.1 Extend rnConv for 3D Operations ⭐ CRITICAL
+- [ ] Update `gsampling/layers/rnconv.py` to support 3D domain
+- [ ] Add support for `domain=3` parameter
+- [ ] Implement 3D convolution using `enn.R3Conv`
+- [ ] Support both 2D groups acting on 3D data (dihedralOnR3, rot2dOnR3)
+- [ ] Support 3D groups acting on 3D data (octahedral, full_octahedral)
+- [ ] Handle different gspace types based on domain and group type
+
+### 2.2 Extend Group Utils for 3D Support
+- [ ] Update `gsampling/utils/group_utils.py` 
+- [ ] Add 3D gspace constructors for 2D groups:
+  - [ ] `dihedralOnR3`: `gspaces.flipRot2dOnR3(order)`
+  - [ ] `rot2dOnR3`: `gspaces.rot2dOnR3(order)`
+- [ ] Ensure 3D group gspaces are properly configured
+- [ ] Add dimension validation and group type checking
+- [ ] Update `get_gspace()` to handle 3D domain parameter
+
+### 2.3 Test 3D Convolution Layer
+- [ ] Create `tests/test_3d_convolution.py`
+- [ ] Test rnConv with domain=3 for different group types
+- [ ] Test 2D groups on 3D data (dihedralOnR3, rot2dOnR3)
+- [ ] Test 3D groups on 3D data (octahedral, full_octahedral)
+- [ ] Verify tensor shapes and group equivariance
+- [ ] Test forward pass with realistic 3D input tensors
+
+## PHASE 3: 3D GCNN Model Implementation
+# --------------------------------------
+# Create 3D GCNN model and update model handler
+
+### 3.1 Create 3D GCNN Model ⭐ CRITICAL
+- [ ] Create `gsampling/models/g_cnn_3d.py`
+- [ ] Extend Gcnn class to support 3D operations
+- [ ] Implement 3D spatial subsampling with 3D blur pooling
+- [ ] Support 3D group subsampling with anti-aliasing
+- [ ] Handle 3D tensor shapes throughout the network
+- [ ] Implement 3D pooling operations (max/mean over 3D spatial dimensions)
+
+### 3.2 Update Model Handler for 3D Support
+- [ ] Update `gsampling/models/model_handler.py`
+- [ ] Add 3D model creation function `get_3d_model()`
+- [ ] Support 3D domain parameter and 3D group types
+- [ ] Configure 3D spatial subsampling factors
+- [ ] Set up 3D anti-aliasing parameters
+- [ ] Provide sensible defaults for 3D operations
+
+### 3.3 Test 3D GCNN Model
+- [ ] Create `tests/test_3d_gcnn.py`
+- [ ] Test 3D model creation with different configurations
+- [ ] Test forward pass with 3D input tensors (B, C, D, H, W)
+- [ ] Verify group equivariance under 3D transformations
+- [ ] Test end-to-end 3D GCNN pipeline
+- [ ] Validate output shapes and feature dimensions
+
+## PHASE 4: Integration and End-to-End Testing
+# ---------------------------------------------
+# Final integration testing and validation
+
+### 4.1 Integration Testing
+- [ ] Test complete 3D GCNN pipeline with octahedral groups
+- [ ] Verify anti-aliasing works with 3D group subsampling
+- [ ] Test different 3D group configurations and transitions
+- [ ] Validate equivariance preservation through the network
+- [ ] Test with realistic 3D data dimensions
+
+### 4.2 Performance and Stability Testing
+- [ ] Test numerical stability of 3D operations
+- [ ] Verify memory usage for 3D tensors
+- [ ] Test GPU acceleration for 3D convolutions
+- [ ] Benchmark 3D vs 2D performance
+- [ ] Validate anti-aliasing quality for 3D groups
+
+### 4.3 Documentation and Examples
+- [ ] Update project documentation for 3D support
+- [ ] Create example scripts for 3D GCNN usage
+- [ ] Document 3D group configurations and parameters
+- [ ] Provide usage examples for different 3D group types
+
+## IMPLEMENTATION ORDER
+# ---------------------
+1. **Phase 1**: 3D anti-aliasing tests (validate core functionality)
+2. **Phase 2**: 3D convolution support (extend layers)
+3. **Phase 3**: 3D GCNN model (build complete model)
+4. **Phase 4**: Integration testing (end-to-end validation)
+
+## TESTING STRATEGY
+# -----------------
+- **Unit Tests**: Test each component individually
+- **Integration Tests**: Test component interactions
+- **End-to-End Tests**: Test complete 3D GCNN pipeline
+- **Equivariance Tests**: Verify group equivariance preservation
+- **Performance Tests**: Validate computational efficiency
+
+## SUCCESS CRITERIA
+# -----------------
+✅ 3D anti-aliasing works with octahedral groups
+✅ 3D convolutions support both 2D and 3D groups
+✅ 3D GCNN model can process 3D data end-to-end
+✅ Group equivariance is preserved through 3D operations
+✅ Performance is reasonable for 3D tensor operations
+✅ All tests pass for 3D functionality

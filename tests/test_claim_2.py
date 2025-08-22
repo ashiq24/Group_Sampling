@@ -9,6 +9,7 @@ operator should be perfectly reconstructed after subsampling and upsampling.
 import pytest
 import torch
 import numpy as np
+from gsampling.layers.helper import SmoothOperatorFactory, ReynoldsProjectorHelper, L1ProjectorUtils, FourierOps
 
 # Import the modules under test
 try:
