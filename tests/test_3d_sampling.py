@@ -18,17 +18,6 @@ This module tests the 3D group subsampling strategies implemented in gsampling/c
 
 import pytest
 import numpy as np
-import torch
-from typing import List, Tuple
-
-# Import test utilities
-from tests.conftest import (
-    tolerance_config,
-    random_seed,
-    assert_tensors_close,
-    skip_if_no_escnn
-)
-
 # Import the strategies under test
 try:
     from gsampling.core.subsampling import (
