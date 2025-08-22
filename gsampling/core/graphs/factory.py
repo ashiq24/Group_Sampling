@@ -10,6 +10,7 @@ from typing import List, Optional, Dict, Type, Callable
 from .base import AbstractGroupGraph, UnsupportedGroupError
 from .cyclic import CycleGraph
 from .dihedral import DihedralGraph
+from .octahedral import OctahedralGraph, FullOctahedralGraph
 
 
 class GroupGraphFactory:
@@ -103,6 +104,10 @@ class GroupGraphFactory:
 GroupGraphFactory.register("cycle", CycleGraph)
 GroupGraphFactory.register("cyclic", CycleGraph)  # Alias
 GroupGraphFactory.register("dihedral", DihedralGraph)
+
+# Register 3D group types
+GroupGraphFactory.register("octahedral", OctahedralGraph)
+GroupGraphFactory.register("full_octahedral", FullOctahedralGraph)
 
 
 # Convenience function for backward compatibility
