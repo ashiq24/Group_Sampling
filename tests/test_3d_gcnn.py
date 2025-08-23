@@ -309,10 +309,10 @@ class Test3DModelHandler:
         # Check defaults
         assert model.domain == 3
         assert model.num_layers == 1
-        assert model.dwn_group_types == [["octahedral", "cycle"]]
+        assert model.dwn_group_types == [["octahedral", "octahedral"]]  # No group downsampling by default
         assert model.init_group_order == 24
-        assert model.spatial_subsampling_factors == [2]
-        assert model.subsampling_factors == [6]  # 24/4 = 6
+        assert model.spatial_subsampling_factors == [1]  # No spatial downsampling by default
+        assert model.subsampling_factors == [1]  # No group downsampling (same group type)
 
         print("✅ 3D model with defaults successful")
 

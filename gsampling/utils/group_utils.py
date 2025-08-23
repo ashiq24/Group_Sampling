@@ -6,12 +6,12 @@ making it easy to extend to new groups (tetrahedral, octahedral, etc.) without
 modifying existing code.
 """
 
-from escnn.group import *
-from escnn import gspaces
-import escnn.nn as enn
+from typing import Dict, Callable, Any, Optional
 import torch
 import torch.nn as nn
-from typing import Dict, Callable, Any, Optional
+from escnn.group import cyclic_group, dihedral_group, trivial_group, octa_group, full_octa_group
+from escnn import gspaces
+import escnn.nn as enn
 
 
 # ========================= Group Registry =========================
@@ -275,25 +275,4 @@ def is_3d_group(group_type: str) -> bool:
         return False
 
 
-# ========================= Legacy Support =========================
 
-# Keep the old get_sub_group_element function for backward compatibility
-# (commented out in the current implementation)
-
-
-# def get_sub_group_element(element, group_type, sub_group_type, subsampling_factor):
-#     """
-#     group_type: str : name of the group
-#     sub_group_type: str : name of the subgroup
-#     order: int : order of the group
-#     subsampling_factor: int : subsampling factor
-#     """
-#     if group_type == "dihedral" and sub_group_type == "dihedral":
-#         f, r = element._element
-#         return (f, r // subsampling_factor)
-#     elif group_type == "cycle" and sub_group_type == "cycle":
-#         return element._element // subsampling_factor
-#     elif group_type == "dihedral" and sub_group_type == "cycle":
-#         return element._element[1] // max(subsampling_factor // 2, 1)
-#     else:
-#         raise ValueError(f"Group type {group_type} not found")

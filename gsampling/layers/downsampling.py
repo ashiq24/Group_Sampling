@@ -88,7 +88,6 @@ class SubgroupDownsample(nn.Module):
             # For 3D groups, use the actual group order from ESCNN
             actual_order = self.G.order()
             if actual_order != order:
-                print(f"Warning: Specified order {order} doesn't match actual group order {actual_order}. Using actual order.")
                 self.order = actual_order
             
             # Calculate subgroup order based on subsampling factor
@@ -129,7 +128,6 @@ class SubgroupDownsample(nn.Module):
 
         # Initialize anti-aliasing layer if applicable
         if apply_antialiasing:
-            print("Initializing anti-aliasing layer")
             self.anti_aliaser = AntiAliasingLayer(
                 nodes=self.graphs.graph.nodes,
                 adjaceny_matrix=self.graphs.graph.adjacency_matrix,
@@ -143,7 +141,6 @@ class SubgroupDownsample(nn.Module):
             )
             self.anti_aliaser.to(device=self.device, dtype=self.dtype)
         else:
-            print("Anti-aliasing layer not applied")
             self.anti_aliaser = None
 
                         # Initialize canonicalizer if applicable

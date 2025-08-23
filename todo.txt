@@ -115,22 +115,22 @@
   - [ ] `gsampling/layers/solvers.py` (2 print statements)
   - [ ] `gsampling/layers/anti_aliasing.py` (1 print statement)
 
-### 5.2 Remove Legacy Code and Deprecated Functions
-- [ ] Remove `_LegacyDihedralGraph` and `_LegacyCycleGraph` classes
-- [ ] Clean up `gsampling/utils/graph_constructors.py` legacy imports
-- [ ] Remove commented-out print statements in `cannonicalizer.py`
-- [ ] Clean up legacy function references in test files
-- [ ] Remove unused legacy support code in `group_utils.py`
+### 5.2 Remove Legacy Code and Deprecated Functions ✅ COMPLETED
+- [x] Remove `_LegacyDihedralGraph` and `_LegacyCycleGraph` classes
+- [x] Clean up `gsampling/utils/graph_constructors.py` legacy imports
+- [x] Remove commented-out print statements in `cannonicalizer.py`
+- [x] Clean up legacy function references in test files
+- [x] Remove unused legacy support code in `group_utils.py`
 
-### 5.3 Optimize Import Statements
-- [ ] Consolidate multiple import lines into single lines where appropriate
-- [ ] Group related imports together (standard library, third-party, local)
-- [ ] Remove unused imports
-- [ ] Files to optimize:
-  - [ ] `tests/conftest.py` - consolidate pytest, torch, numpy imports
-  - [ ] `tests/test_3d_convolution.py` - consolidate imports
-  - [ ] `gsampling/layers/rnconv.py` - consolidate escnn imports
-  - [ ] `gsampling/utils/group_utils.py` - consolidate escnn imports
+### 5.3 Optimize Import Statements ✅ COMPLETED
+- [x] Consolidate multiple import lines into single lines where appropriate
+- [x] Group related imports together (standard library, third-party, local)
+- [x] Remove unused imports
+- [x] Files to optimize:
+  - [x] `tests/conftest.py` - consolidate pytest, torch, numpy imports
+  - [x] `tests/test_3d_convolution.py` - consolidate imports
+  - [x] `gsampling/layers/rnconv.py` - consolidate escnn imports
+  - [x] `gsampling/utils/group_utils.py` - consolidate escnn imports
 
 ### 5.4 Remove Unused Functions and Methods
 - [ ] Remove `evaluate_output_shape` method in `cannonicalizer.py` (just `pass`)

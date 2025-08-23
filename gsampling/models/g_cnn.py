@@ -106,7 +106,7 @@ class Gcnn(nn.Module):
                 rep = "regular"
 
             if subsampling_factors[i] > 1:
-                print("Antialiasing", self.apply_antialiasing)
+                print("Antialiasing Condition at layer ", i, ": ", self.apply_antialiasing)
                 sampling_layer = SubgroupDownsample(
                     group_type=self.dwn_group_types[i][0],
                     order=current_group_order,
@@ -170,7 +170,6 @@ class Gcnn(nn.Module):
 
     def get_feature(self, x):
         for i in range(self.num_layers):
-            print(" at layer ", i, " x shape ", x.shape)
             x = self.conv_layers[i](x)
             x = torch.relu(x)
             if self.spatial_subsampling_factors[i] > 1:

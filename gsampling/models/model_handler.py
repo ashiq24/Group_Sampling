@@ -161,7 +161,7 @@ def get_3d_model(
     if kernel_sizes is None:
         kernel_sizes = num_layers * [3]  # 3x3x3 kernels for 3D
     if dwn_group_types is None:
-        # Default: octahedral → cycle transition
+        # Default: no group downsampling (same input/output group)
         dwn_group_types = num_layers * [["octahedral", "octahedral"]]
     if spatial_subsampling_factors is None:
         spatial_subsampling_factors = num_layers * [1]  # Aggressive 3D subsampling

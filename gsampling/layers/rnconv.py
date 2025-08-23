@@ -1,7 +1,6 @@
-from escnn import gspaces
-import escnn.nn as enn
 import torch.nn as nn
-from gsampling.utils.group_utils import *
+import escnn.nn as enn
+from gsampling.utils.group_utils import get_group, get_gspace
 
 
 class rnConv(nn.Module):

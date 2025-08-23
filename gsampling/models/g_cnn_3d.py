@@ -116,7 +116,7 @@ class Gcnn3D(nn.Module):
                 rep = "regular"
 
             if subsampling_factors[i] > 1:
-                print("Antialiasing", self.apply_antialiasing)
+                print("Antialiasing Condition at layer ", i, ": ", self.apply_antialiasing)
                 sampling_layer = SubgroupDownsample(
                     group_type=self.dwn_group_types[i][0],
                     order=current_group_order,
@@ -194,18 +194,14 @@ class Gcnn3D(nn.Module):
     def get_feature(self, x):
         """Forward pass through the 3D GCNN feature extractor."""
         for i in range(self.num_layers):
-            print(f"Layer {i}: input shape {x.shape}")
             x = self.conv_layers[i](x)
             x = torch.relu(x)
-            print(f"  After conv: {x.shape}")
 
             if self.spatial_subsampling_factors[i] > 1:
                 x = self.spatial_sampling_layers[i](x)
-                print(f"  After spatial subsampling: {x.shape}")
 
             if self.sampling_layers[i] is not None:
                 x, _ = self.sampling_layers[i](x)
-                print(f"  After group subsampling: {x.shape}")
 
             if self.dropout_rate > 0:
                 x = nn.functional.dropout(
@@ -247,7 +243,6 @@ class Gcnn3D(nn.Module):
             # Create linear layer on first forward pass if not created yet
             if self.linear_layer is None:
                 actual_features = x.shape[1]
-                print(f"Creating linear layer: {actual_features} -> {self.num_classes} (dtype: {self.dtype}, device: {self.device})")
                 self.linear_layer = nn.Linear(actual_features, self.num_classes, dtype=self.dtype, device=self.device)
             x = self.linear_layer(x)
         return x

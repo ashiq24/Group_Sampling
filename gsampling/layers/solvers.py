@@ -132,7 +132,6 @@ def solve_M(
             loss_recon = torch.mean((recon - FH).abs() ** 2)
             smooth = torch.trace(M_param.T @ FG.T @ L @ FG @ M_param).real
             loss = loss_recon + smoothness_loss_weight * smooth
-            print(f"[gpu_optim] iter={it} loss={loss.item():.6f} loss_recon={loss_recon.item():.6f} smooth={smooth.item():.6f}")
 
             if projector is not None and (it % equi_interval == 0):
                 eps = 1e-3
@@ -163,7 +162,7 @@ def solve_M(
                 best_loss = loss.item()
                 best = M_param.detach().clone()
             if it % 1000 == 0:
-                print(f"[gpu_optim] iter={it} loss={loss.item():.6f}")
+                print("[GPU_OPT] Iteration ", it, " loss: ", loss.item())
 
         M_out = (best if best is not None else M_param.detach()).to(out_high_dtype, copy=True).cpu()
         return M_out
