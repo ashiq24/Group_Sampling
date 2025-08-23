@@ -54,67 +54,123 @@
 # Create 3D GCNN model and update model handler
 
 ### 3.1 Create 3D GCNN Model ⭐ CRITICAL
-- [ ] Create `gsampling/models/g_cnn_3d.py`
-- [ ] Extend Gcnn class to support 3D operations
-- [ ] Implement 3D spatial subsampling with 3D blur pooling
-- [ ] Support 3D group subsampling with anti-aliasing
-- [ ] Handle 3D tensor shapes throughout the network
-- [ ] Implement 3D pooling operations (max/mean over 3D spatial dimensions)
+- [x] Create `gsampling/models/g_cnn_3d.py`
+- [x] Extend Gcnn class to support 3D operations
+- [x] Implement 3D spatial subsampling with 3D blur pooling
+- [x] Support 3D group subsampling with anti-aliasing
+- [x] Handle 3D tensor shapes throughout the network
+- [x] Implement 3D pooling operations (max/mean over 3D spatial dimensions)
 
 ### 3.2 Update Model Handler for 3D Support
-- [ ] Update `gsampling/models/model_handler.py`
-- [ ] Add 3D model creation function `get_3d_model()`
-- [ ] Support 3D domain parameter and 3D group types
-- [ ] Configure 3D spatial subsampling factors
-- [ ] Set up 3D anti-aliasing parameters
-- [ ] Provide sensible defaults for 3D operations
+- [x] Update `gsampling/models/model_handler.py`
+- [x] Add 3D model creation function `get_3d_model()`
+- [x] Support 3D domain parameter and 3D group types
+- [x] Configure 3D spatial subsampling factors
+- [x] Set up 3D anti-aliasing parameters
+- [x] Provide sensible defaults for 3D operations
 
 ### 3.3 Test 3D GCNN Model
-- [ ] Create `tests/test_3d_gcnn.py`
-- [ ] Test 3D model creation with different configurations
-- [ ] Test forward pass with 3D input tensors (B, C, D, H, W)
-- [ ] Verify group equivariance under 3D transformations
-- [ ] Test end-to-end 3D GCNN pipeline
-- [ ] Validate output shapes and feature dimensions
+- [x] Create `tests/test_3d_gcnn.py`
+- [x] Test 3D model creation with different configurations
+- [x] Test forward pass with 3D input tensors (B, C, D, H, W)
+- [x] Verify group equivariance under 3D transformations
+- [x] Test end-to-end 3D GCNN pipeline
+- [x] Validate output shapes and feature dimensions
 
 ## PHASE 4: Integration and End-to-End Testing
 # ---------------------------------------------
 # Final integration testing and validation
 
 ### 4.1 Integration Testing
-- [ ] Test complete 3D GCNN pipeline with octahedral groups
-- [ ] Verify anti-aliasing works with 3D group subsampling
-- [ ] Test different 3D group configurations and transitions
-- [ ] Validate equivariance preservation through the network
-- [ ] Test with realistic 3D data dimensions
+- [x] Test complete 3D GCNN pipeline with octahedral groups
+- [x] Verify anti-aliasing works with 3D group subsampling
+- [x] Test different 3D group configurations and transitions
+- [x] Validate equivariance preservation through the network
+- [x] Test with realistic 3D data dimensions
 
 ### 4.2 Performance and Stability Testing
-- [ ] Test numerical stability of 3D operations
-- [ ] Verify memory usage for 3D tensors
-- [ ] Test GPU acceleration for 3D convolutions
-- [ ] Benchmark 3D vs 2D performance
-- [ ] Validate anti-aliasing quality for 3D groups
+- [x] Test numerical stability of 3D operations
+- [x] Verify memory usage for 3D tensors
+- [x] Test GPU acceleration for 3D convolutions
+- [x] Benchmark 3D vs 2D performance
+- [x] Validate anti-aliasing quality for 3D groups
 
 ### 4.3 Documentation and Examples
-- [ ] Update project documentation for 3D support
-- [ ] Create example scripts for 3D GCNN usage
-- [ ] Document 3D group configurations and parameters
-- [ ] Provide usage examples for different 3D group types
+- [x] Update project documentation for 3D support
+- [x] Create example scripts for 3D GCNN usage
+- [x] Document 3D group configurations and parameters
+- [x] Provide usage examples for different 3D group types
+
+## PHASE 5: Code Cleanup and Optimization 🧹
+# -------------------------------------------
+# Clean up codebase without changing functionality
+
+### 5.1 Remove Debug Print Statements ⭐ HIGH PRIORITY
+- [ ] Remove all `print()` statements from production code
+- [ ] Replace with proper logging system or remove entirely
+- [ ] Files to clean:
+  - [ ] `gsampling/models/g_cnn_3d.py` (6 print statements)
+  - [ ] `gsampling/models/g_cnn.py` (2 print statements)
+  - [ ] `gsampling/layers/downsampling.py` (3 print statements)
+  - [ ] `gsampling/layers/solvers.py` (2 print statements)
+  - [ ] `gsampling/layers/anti_aliasing.py` (1 print statement)
+
+### 5.2 Remove Legacy Code and Deprecated Functions
+- [ ] Remove `_LegacyDihedralGraph` and `_LegacyCycleGraph` classes
+- [ ] Clean up `gsampling/utils/graph_constructors.py` legacy imports
+- [ ] Remove commented-out print statements in `cannonicalizer.py`
+- [ ] Clean up legacy function references in test files
+- [ ] Remove unused legacy support code in `group_utils.py`
+
+### 5.3 Optimize Import Statements
+- [ ] Consolidate multiple import lines into single lines where appropriate
+- [ ] Group related imports together (standard library, third-party, local)
+- [ ] Remove unused imports
+- [ ] Files to optimize:
+  - [ ] `tests/conftest.py` - consolidate pytest, torch, numpy imports
+  - [ ] `tests/test_3d_convolution.py` - consolidate imports
+  - [ ] `gsampling/layers/rnconv.py` - consolidate escnn imports
+  - [ ] `gsampling/utils/group_utils.py` - consolidate escnn imports
+
+### 5.4 Remove Unused Functions and Methods
+- [ ] Remove `evaluate_output_shape` method in `cannonicalizer.py` (just `pass`)
+- [ ] Remove legacy test functions that are no longer needed
+- [ ] Clean up unused helper functions in test files
+- [ ] Remove commented-out code blocks
+
+### 5.5 Optimize Code Structure and Reduce Repetition
+- [ ] Consolidate similar test patterns in test files
+- [ ] Create common test utilities to reduce code duplication
+- [ ] Optimize repeated parameter configurations in tests
+- [ ] Standardize test function naming conventions
+
+### 5.6 Clean Up Documentation and Comments
+- [ ] Remove unnecessary docstrings that just repeat function names
+- [ ] Clean up overly verbose comments
+- [ ] Standardize comment formatting across files
+- [ ] Remove outdated TODO comments and implementation notes
+
+### 5.7 Code Quality Improvements
+- [ ] Fix minor code style issues (spacing, line length)
+- [ ] Ensure consistent naming conventions
+- [ ] Remove unused variables and parameters
+- [ ] Optimize small performance bottlenecks
 
 ## IMPLEMENTATION ORDER
 # ---------------------
-1. **Phase 1**: 3D anti-aliasing tests (validate core functionality)
-2. **Phase 2**: 3D convolution support (extend layers)
-3. **Phase 3**: 3D GCNN model (build complete model)
-4. **Phase 4**: Integration testing (end-to-end validation)
+1. **Phase 1**: 3D anti-aliasing tests (validate core functionality) ✅ COMPLETED
+2. **Phase 2**: 3D convolution support (extend layers) ✅ COMPLETED  
+3. **Phase 3**: 3D GCNN model (build complete model) ✅ COMPLETED
+4. **Phase 4**: Integration testing (end-to-end validation) ✅ COMPLETED
+5. **Phase 5**: Code cleanup and optimization 🧹 **CURRENT PHASE**
 
 ## TESTING STRATEGY
 # -----------------
-- **Unit Tests**: Test each component individually
-- **Integration Tests**: Test component interactions
-- **End-to-End Tests**: Test complete 3D GCNN pipeline
-- **Equivariance Tests**: Verify group equivariance preservation
-- **Performance Tests**: Validate computational efficiency
+- **Unit Tests**: Test each component individually ✅ COMPLETED
+- **Integration Tests**: Test component interactions ✅ COMPLETED
+- **End-to-End Tests**: Test complete 3D GCNN pipeline ✅ COMPLETED
+- **Equivariance Tests**: Verify group equivariance preservation ✅ COMPLETED
+- **Performance Tests**: Validate computational efficiency ✅ COMPLETED
 
 ## SUCCESS CRITERIA
 # -----------------
@@ -124,3 +180,13 @@
 ✅ Group equivariance is preserved through 3D operations
 ✅ Performance is reasonable for 3D tensor operations
 ✅ All tests pass for 3D functionality
+
+## CLEANUP SUCCESS CRITERIA
+# -------------------------
+- [ ] No debug print statements in production code
+- [ ] No legacy/deprecated code remains
+- [ ] Import statements are clean and organized
+- [ ] No unused functions or methods
+- [ ] Code follows consistent style and conventions
+- [ ] All functionality preserved (no breaking changes)
+- [ ] Test coverage maintained or improved

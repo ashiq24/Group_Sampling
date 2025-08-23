@@ -62,8 +62,7 @@ def demo_octahedral_gcnn():
     # Show intermediate shapes by getting hidden features
     features_before, features_after, sampling_layers = model.get_hidden_feature(x)
 
-    print("
-Intermediate shapes:")
+    print("Intermediate shapes:")
     for i, (feat_before, feat_after) in enumerate(zip(features_before, features_after)):
         print(f"  Layer {i+1}: {feat_before.shape} → {feat_after.shape}")
 
@@ -176,11 +175,11 @@ def demo_anti_aliasing_comparison():
     print("With anti-aliasing:")
     out_with_aa = model_with_aa(x)
     print(f"  Output shape: {out_with_aa.shape}")
-    print("  ✅ Anti-aliasing preserves group equivariance"
+    print("✅ Anti-aliasing preserves group equivariance")
     print("Without anti-aliasing:")
     out_without_aa = model_without_aa(x)
     print(f"  Output shape: {out_without_aa.shape}")
-    print("  ⚠️  May have aliasing artifacts"
+    print("⚠️  May have aliasing artifacts")
 
     print("✅ Anti-aliasing comparison demo completed!\n")
 
