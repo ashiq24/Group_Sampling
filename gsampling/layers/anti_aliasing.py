@@ -474,16 +474,22 @@ class AntiAliasingLayer(torch.nn.Module):
         """
         if len(x.shape) == 4:
             x = rearrange(x, "b (c g) h w -> b c g h w", g=len(self.nodes))
+        elif len(x.shape) == 5:
+            x = rearrange(x, "b (c g) h w d -> b c g h w d", g=len(self.nodes))
 
         fh = self.fft(x)
         if len(x.shape) == 5:
             fh_p = torch.einsum("fg,bcghw->bcfhw", self.L1_projector, fh)
+        elif len(x.shape) == 6:
+            fh_p = torch.einsum("fg,bcghwd->bcfhwd", self.L1_projector, fh)
         else:
             fh_p = self.L1_projector @ fh
         x_out = self.ifft(fh_p)
 
         if len(x.shape) == 5:
             x_out = rearrange(x_out, "b  c g h w -> b (c g) h w")
+        elif len(x.shape) == 6:
+            x_out = rearrange(x_out, "b c g h w d -> b (c g) h w d")
         return x_out
 
     def apply_subsample_matrix(self, x):
@@ -506,10 +512,14 @@ class AntiAliasingLayer(torch.nn.Module):
         """
         if len(x.shape) == 4:
             x = rearrange(x, "b (c g) h w -> b c g h w", g=len(self.subsample_nodes))
+        elif len(x.shape) == 5:
+            x = rearrange(x, "b (c g) h w d -> b c g h w d", g=len(self.subsample_nodes))
         xh = FourierOps.forward(x, self.sub_basis, self.dtype)
         x_upsampled = FourierOps.inverse(xh, self.up_sampling_basis)
         if len(x.shape) == 5:
             x_upsampled = rearrange(x_upsampled, "b c g h w -> b (c g) h w")
+        elif len(x.shape) == 6:
+            x_upsampled = rearrange(x_upsampled, "b c g h w d -> b (c g) h w d")
         return x_upsampled
     def forward(self, x):
         y =self.anti_aliase(x)

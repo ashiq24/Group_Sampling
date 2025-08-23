@@ -30,6 +30,7 @@
 - [ ] Support both 2D groups acting on 3D data (dihedralOnR3, rot2dOnR3)
 - [ ] Support 3D groups acting on 3D data (octahedral, full_octahedral)
 - [ ] Handle different gspace types based on domain and group type
+- [ ] Add support for 4d tensor (B, C, depth, height, Width) in Fourier ops in helper.py
 
 ### 2.2 Extend Group Utils for 3D Support
 - [ ] Update `gsampling/utils/group_utils.py` 

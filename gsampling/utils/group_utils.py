@@ -102,6 +102,21 @@ GroupRegistry.register("trivial", {
     "description": "Trivial group (identity only)"
 })
 
+# Register 2D groups acting on 3D data
+GroupRegistry.register("dihedralOnR3", {
+    "escnn_func": dihedral_group,
+    "gspace_func": lambda order: gspaces.rot2dOnR3(order),  # 2D rotations in 3D space
+    "dimension": 3,
+    "description": "Dihedral group D_n acting on 3D data (rotations around z-axis + reflections)"
+})
+
+GroupRegistry.register("rot2dOnR3", {
+    "escnn_func": cyclic_group,
+    "gspace_func": lambda order: gspaces.rot2dOnR3(order),  # 2D rotations in 3D space
+    "dimension": 3,
+    "description": "Cyclic group C_n acting on 3D data (rotations around z-axis)"
+})
+
 # Register 3D groups (ready for implementation)
 GroupRegistry.register("octahedral", {
     "escnn_func": lambda order: octa_group(),  # Octahedral group doesn't take order parameter
@@ -164,7 +179,7 @@ def get_group(group_type: str, order: int):
 
 
 def get_gspace(
-    *, group_type: str, order: int, num_features: int, representation: str = "regular"
+    *, group_type: str, order: int, num_features: int, representation: str = "regular", domain: int = None
 ):
     """
     Get ESCNN FieldType (gspace feature type) for the specified group.
@@ -174,16 +189,54 @@ def get_gspace(
         order: Order of the group
         num_features: Number of features/channels
         representation: Type of representation ('regular' or 'trivial')
+        domain: Spatial dimension (2 or 3). If None, uses group's natural dimension.
         
     Returns:
         ESCNN FieldType object
         
-    **Automatic Dimension Handling:**
+    **Dimension Handling:**
     - 2D groups: Use 2D gspaces (rot2dOnR2, flipRot2dOnR2)
     - 3D groups: Use 3D gspaces (rot3dOnR3, octaOnR3, icoOnR3)
+    - 2D groups on 3D data: Use 3D gspaces (rot2dOnR3, dihedralOnR3)
+    
+    **Examples:**
+    - get_gspace("dihedral", 8, 32, domain=2) → flipRot2dOnR2(8)
+    - get_gspace("dihedral", 8, 32, domain=3) → rot2dOnR3(8) (2D rotations in 3D space)
+    - get_gspace("octahedral", 24, 32) → octaOnR3() (natural 3D group)
     """
-    config = GroupRegistry.get_group_config(group_type)
-    gspace = config["gspace_func"](order)
+    # If domain is specified, use it to determine gspace type
+    if domain is not None:
+        if domain == 2:
+            # Force 2D gspace
+            if group_type in ["dihedral", "cycle", "cyclic"]:
+                if group_type == "dihedral":
+                    gspace = gspaces.flipRot2dOnR2(order)
+                else:
+                    gspace = gspaces.rot2dOnR2(order)
+            else:
+                # For 3D groups, we need to check if they support 2D operations
+                config = GroupRegistry.get_group_config(group_type)
+                if config["dimension"] == 3:
+                    raise ValueError(f"Group type '{group_type}' is inherently 3D and cannot be used in 2D domain")
+                gspace = config["gspace_func"](order)
+        elif domain == 3:
+            # Force 3D gspace
+            if group_type in ["dihedral", "cycle", "cyclic"]:
+                # Use 2D groups acting on 3D data
+                if group_type == "dihedral":
+                    gspace = gspaces.rot2dOnR3(order)
+                else:
+                    gspace = gspaces.rot2dOnR3(order)
+            else:
+                # Use natural 3D gspace
+                config = GroupRegistry.get_group_config(group_type)
+                gspace = config["gspace_func"](order)
+        else:
+            raise ValueError(f"Domain {domain} not supported. Use 2 or 3.")
+    else:
+        # Use group's natural dimension
+        config = GroupRegistry.get_group_config(group_type)
+        gspace = config["gspace_func"](order)
     
     if representation == "regular" or representation is None:
         g_feature = enn.FieldType(gspace, num_features * [gspace.regular_repr])

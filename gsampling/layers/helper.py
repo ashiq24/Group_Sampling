@@ -106,6 +106,8 @@ class FourierOps:
             return torch.matmul(B, x.to(basis.dtype))
         elif len(x.shape) == 5:
             return torch.einsum("fg,bcghw->bcfhw", B, x.to(basis.dtype))
+        elif len(x.shape) == 6:
+            return torch.einsum("fg,bcghwd->bcfhwd", B, x.to(basis.dtype))
         else:
             raise ValueError("Invalid shape: ", x.shape)
 
@@ -115,6 +117,8 @@ class FourierOps:
             return torch.matmul(basis, x)
         elif len(x.shape) == 5:
             return torch.einsum("fg,bcghw->bcfhw", basis, x.to(basis.dtype))
+        elif len(x.shape) == 6:
+            return torch.einsum("fg,bcghwd->bcfhwd", basis, x.to(basis.dtype))
         else:
             raise ValueError("Invalid shape: ", x.shape)
 

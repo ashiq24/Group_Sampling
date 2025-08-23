@@ -23,18 +23,23 @@ class TensorLayoutHelper:
     def flatten_group_channels(x: torch.Tensor, group_size: int) -> torch.Tensor:
         """
         Convert from (B, C, |G|, H, W) to (B, C*|G|, H, W) layout.
+        Convert from (B, C, |G|, H, W, D) to (B, C*|G|, H, W, D) layout.
         
         Args:
-            x: Input tensor of shape (B, C, |G|, H, W)
+            x: Input tensor of shape (B, C, |G|, H, W) or (B, C, |G|, H, W, D)
             group_size: Size of the group |G|
             
         Returns:
-            Tensor of shape (B, C*|G|, H, W)
+            Tensor of shape (B, C*|G|, H, W) or (B, C*|G|, H, W, D)
         """
         if x.dim() == 5:  # (B, C, |G|, H, W)
             B, C, G, H, W = x.shape
             assert G == group_size, f"Expected group dimension {group_size}, got {G}"
             return x.reshape(B, C * G, H, W)
+        elif x.dim() == 6:  # (B, C, |G|, H, W, D)
+            B, C, G, H, W, D = x.shape
+            assert G == group_size, f"Expected group dimension {group_size}, got {G}"
+            return x.reshape(B, C * G, H, W, D)
         elif x.dim() == 3:  # (B, C, |G|) - 1D case
             B, C, G = x.shape
             assert G == group_size, f"Expected group dimension {group_size}, got {G}"
@@ -50,19 +55,24 @@ class TensorLayoutHelper:
     def unflatten_group_channels(x: torch.Tensor, group_size: int, num_channels: int) -> torch.Tensor:
         """
         Convert from (B, C*|G|, H, W) to (B, C, |G|, H, W) layout.
+        Convert from (B, C*|G|, H, W, D) to (B, C, |G|, H, W, D) layout.
         
         Args:
-            x: Input tensor of shape (B, C*|G|, H, W) or similar
+            x: Input tensor of shape (B, C*|G|, H, W) or (B, C*|G|, H, W, D)
             group_size: Size of the group |G|
             num_channels: Number of feature channels C
             
         Returns:
-            Tensor of shape (B, C, |G|, H, W) or similar
+            Tensor of shape (B, C, |G|, H, W) or (B, C, |G|, H, W, D)
         """
         if x.dim() == 4:  # (B, C*|G|, H, W)
             B, CG, H, W = x.shape
             assert CG == num_channels * group_size, f"Expected {num_channels * group_size} channels, got {CG}"
             return x.reshape(B, num_channels, group_size, H, W)
+        elif x.dim() == 5:  # (B, C*|G|, H, W, D)
+            B, CG, H, W, D = x.shape
+            assert CG == num_channels * group_size, f"Expected {num_channels * group_size} channels, got {CG}"
+            return x.reshape(B, num_channels, group_size, H, W, D)
         elif x.dim() == 2:  # (B, C*|G|) - 1D case
             B, CG = x.shape
             assert CG == num_channels * group_size, f"Expected {num_channels * group_size} channels, got {CG}"
@@ -111,20 +121,28 @@ class TensorLayoutHelper:
         Extract a single fiber (group orbit) from group-structured tensor.
         
         Args:
-            x: Group-structured tensor (B, C*|G|, H, W) or (B, C, |G|, H, W)
+            x: Group-structured tensor (B, C*|G|, H, W) or (B, C, |G|, H, W) or (B, C*|G|, H, W, D) or (B, C, |G|, H, W, D)
             group_size: Size of the group
             fiber_idx: Index of fiber to extract (0 to C-1)
             
         Returns:
-            Fiber tensor of shape (B, |G|, H, W) or (B, |G|)
+            Fiber tensor of shape (B, |G|, H, W) or (B, |G|) or (B, |G|, H, W, D)
         """
         if x.dim() == 4:  # (B, C*|G|, H, W)
             B, CG, H, W = x.shape
             num_channels = CG // group_size
             x_unflat = x.reshape(B, num_channels, group_size, H, W)
             return x_unflat[:, fiber_idx]  # (B, |G|, H, W)
-        elif x.dim() == 5:  # (B, C, |G|, H, W)
-            return x[:, fiber_idx]  # (B, |G|, H, W)
+        elif x.dim() == 5:  # (B, C*|G|, H, W, D) or (B, C, |G|, H, W)
+            if x.shape[1] == group_size:  # (B, C, |G|, H, W)
+                return x[:, fiber_idx]  # (B, |G|, H, W)
+            else:  # (B, C*|G|, H, W, D)
+                B, CG, H, W, D = x.shape
+                num_channels = CG // group_size
+                x_unflat = x.reshape(B, num_channels, group_size, H, W, D)
+                return x_unflat[:, fiber_idx]  # (B, |G|, H, W, D)
+        elif x.dim() == 6:  # (B, C, |G|, H, W, D)
+            return x[:, fiber_idx]  # (B, |G|, H, W, D)
         elif x.dim() == 2:  # (B, C*|G|)
             B, CG = x.shape
             num_channels = CG // group_size
@@ -442,6 +460,46 @@ def check_perfect_reconstruction_constraint(
     
     assert torch.allclose(lhs, rhs, atol=tolerance), \
         f"Perfect reconstruction constraint not satisfied. Max error: {torch.max(torch.abs(lhs - rhs))}"
+
+
+# ============================================================================
+# 4D Tensor Support for Fourier Operations (B, C, D, H, W)
+# ============================================================================
+
+def handle_4d_tensor_fourier(x: torch.Tensor, operation: str = 'fft') -> torch.Tensor:
+    """
+    Handle Fourier operations on 4D tensors (B, C, D, H, W).
+    
+    Args:
+        x: Input tensor of shape (B, C, D, H, W)
+        operation: Fourier operation ('fft', 'ifft', 'fft_shift', 'ifft_shift')
+        
+    Returns:
+        Result tensor of same shape
+    """
+    if x.dim() != 5:
+        raise ValueError(f"Expected 5D tensor (B, C, D, H, W), got {x.dim()}D")
+    
+    if operation == 'fft':
+        # Perform 3D FFT on spatial dimensions (D, H, W)
+        return torch.fft.fftn(x, dim=(-3, -2, -1))
+    elif operation == 'ifft':
+        # Perform 3D IFFT on spatial dimensions (D, H, W)
+        return torch.fft.ifftn(x, dim=(-3, -2, -1))
+    elif operation == 'fft_shift':
+        # Perform 3D FFT shift on spatial dimensions
+        x_shifted = torch.fft.fftshift(x, dim=-3)
+        x_shifted = torch.fft.fftshift(x_shifted, dim=-2)
+        x_shifted = torch.fft.fftshift(x_shifted, dim=-1)
+        return x_shifted
+    elif operation == 'ifft_shift':
+        # Perform 3D IFFT shift on spatial dimensions
+        x_shifted = torch.fft.ifftshift(x, dim=-3)
+        x_shifted = torch.fft.ifftshift(x_shifted, dim=-2)
+        x_shifted = torch.fft.ifftshift(x_shifted, dim=-1)
+        return x_shifted
+    else:
+        raise ValueError(f"Unknown operation: {operation}")
 
 
 # ============================================================================
