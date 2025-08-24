@@ -219,15 +219,13 @@ class AntiAliasingLayer(torch.nn.Module):
         x_out = self.ifft(fh_p)
 
         if len(x.shape) == 5:
-            x_out = rearrange(x_out, "b  c g h w -> b (c g) h w")
+            x_out = rearrange(x_out, "b c g h w -> b (c g) h w")
         elif len(x.shape) == 6:
             x_out = rearrange(x_out, "b c g h w d -> b (c g) h w d")
         return x_out
 
     def apply_subsample_matrix(self, x):
-        """
-        Applies subsampling matrix to input signals.
-        """
+        """Apply subsampling matrix to input signals."""
         return self.sampling_matrix @ x
 
     def up_sample(self, x):
@@ -254,6 +252,6 @@ class AntiAliasingLayer(torch.nn.Module):
             x_upsampled = rearrange(x_upsampled, "b c g h w d -> b (c g) h w d")
         return x_upsampled
     def forward(self, x):
-        y =self.anti_aliase(x)
+        y = self.anti_aliase(x)
         return y
 

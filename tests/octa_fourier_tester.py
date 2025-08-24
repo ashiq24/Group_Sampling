@@ -1,33 +1,4 @@
-"""
-Comprehensive tests for Octahedral group Fourier basis and Reynolds operator functions.
-
-This module validates the mathematical foundations of the Group_Sampling library for 3D octahedral groups by testing:
-
-1. **Fourier Basis Properties** (from OctahedralGraph.get_basis() and FullOctahedralGraph.get_basis()):
-   - Unitarity: U @ U† = I (preserves inner products)
-   - Orthogonality: Columns are orthogonal (Gram matrix = Identity)
-   - Unit Norm: Each basis vector has norm 1
-   - Completeness: Basis spans the full space (perfect reconstruction)
-
-2. **Reynolds Operator Properties** (from get_equi_raynold()):
-   - Hermitian: R = R† (real eigenvalues, stable decomposition)
-   - Idempotent: R² = R (projection property for equivariance)
-   - Positive Semidefinite: R ≥ 0 (all eigenvalues ≥ 0)
-   - Eigenvalue 1: Required for equivariant projection onto invariant subspace
-
-3. **3D Group Specific Properties**: Validates octahedral symmetry properties
-4. **ESCNN Integration**: Ensures compatibility with 3D group theory library
-5. **Numerical Stability**: Tests edge cases and 3D group complexity
-6. **Extensibility**: Documents interface requirements for adding new 3D group types
-
-**Mathematical Background:**
-- Octahedral groups represent symmetries of regular octahedra in 3D space
-- O (24 elements): Rotational symmetries only
-- O_h (48 elements): Full octahedral group including reflections
-- Fourier bases are constructed from irreducible representations (irreps) of these 3D groups
-- Reynolds operators implement R = (1/|G|) Σ_{g∈G} ρ(g) ⊗ ρ(g⁻¹)ᵀ for equivariant projections
-- These operators are fundamental to the anti-aliasing and subsampling algorithms for 3D data
-"""
+"""Comprehensive tests for Octahedral group Fourier basis and Reynolds operator functions."""
 
 import pytest
 import torch
@@ -49,45 +20,10 @@ except ImportError as e:
 
 
 class TestOctahedralFourierBasisProperties:
-    """
-    Test mathematical properties of Fourier bases from octahedral graph constructors.
-    
-    **Mathematical Foundation:**
-    Fourier bases for 3D octahedral groups are constructed from irreducible representations (irreps).
-    For the octahedral group O (24 elements) and full octahedral group O_h (48 elements):
-    - Unitarity: Φ_G @ Φ_G† = I (preserves inner products under transformation)
-    - Completeness: Any signal can be perfectly reconstructed via Φ_G @ (Φ_G† @ signal)
-    - Orthogonality: Columns are orthonormal (Gram matrix = Identity)
-    
-    **Implementation Details:**
-    - OctahedralGraph: Uses ESCNN's octahedral group representations
-    - FullOctahedralGraph: Uses ESCNN's full octahedral group with reflections
-    - Both construct bases from direct sums of irreps with proper normalization
-    
-    **Why These Tests Matter:**
-    - Validates that 3D spectral domain transformations are mathematically sound
-    - Ensures anti-aliasing operators can rely on these properties for 3D data
-    - Prevents numerical instabilities in 3D equivariant computations
-    """
+    """Test mathematical properties of Fourier bases from octahedral graph constructors."""
 
     def test_octahedral_basis_unitary(self, tolerance_config):
-        """
-        Test that octahedral Fourier basis is unitary: U @ U† = I.
-        
-        **Mathematical Property:**
-        A matrix U is unitary if U @ U† = I, where U† is the conjugate transpose.
-        This property ensures that Fourier transforms preserve inner products and norms.
-        
-        **For Octahedral Groups:**
-        The Fourier basis is constructed from the irreducible representations of O,
-        which represent the 24 rotational symmetries of a regular octahedron.
-        
-        **Test Procedure:**
-        1. Build OctahedralGraph for 24 elements
-        2. Extract Fourier basis matrix
-        3. Compute U @ U† and verify it equals identity matrix
-        4. Use appropriate numerical tolerances for floating-point comparison
-        """
+        """Test that octahedral Fourier basis is unitary: U @ U† = I."""
         octa_nodes = list(range(24))
         octa_graph = GroupGraphFactory.create('octahedral', octa_nodes)
         

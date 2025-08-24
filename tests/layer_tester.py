@@ -1,6 +1,13 @@
 import pytest
 import torch
 from tests.conftest import device_real_dtype_parametrize, tolerance_config
+from tests.common_test_utils import (
+    STANDARD_2D_GROUP_CONFIGS,
+    FAST_ANTI_ALIASING_CONFIG,
+    create_test_tensor,
+    verify_tensor_shapes,
+    test_group_equivariance_basic
+)
 
 # Import the modules under test
 try:
@@ -34,15 +41,19 @@ def layer_tester_rn(
 
     assert group_type == "dihedral" or group_type == "cycle"
 
-    # print group types and order
     print(
         f"Testing group type: {group_type}, order: {order}, subgroup type: {sub_group_type}, subsampling factor: {subsampling_factor}, sub_group_order: {G_sub.order()}"
     )
 
     gspace = get_gspace(group_type=group_type, order=order, num_features=num_features)
 
-    x = torch.randn(32, G.order() * num_features, *spatial_size).to(
-        downsampling_layer.device, dtype=downsampling_layer.dtype
+    x = create_test_tensor(
+        batch_size=32,
+        channels=num_features,
+        spatial_dims=spatial_size,
+        device=downsampling_layer.device,
+        dtype=downsampling_layer.dtype,
+        group_order=G.order()
     )
     if len(x.shape) == 3:
         x = torch.nn.functional.pad(x, (padding, padding, padding, padding))
@@ -51,29 +62,38 @@ def layer_tester_rn(
     print("Data tensor ", x.shape, x_sub.shape)
     x_sub_up = downsampling_layer.upsample(x_sub)
 
-    for g in G.elements:
-        x_t = gspace.transform(x.clone(), g)
-        x_t_sub, _ = downsampling_layer(x_t)
-        x_t_sub_up = downsampling_layer.upsample(x_t_sub)
-
-        assert x_t.shape == x.shape
-        assert x_t_sub.shape == x_sub.shape
-        assert x_t_sub_up.shape == x_sub_up.shape
+    def test_transform(x_input):
+        """Test function for group equivariance testing."""
+        x_sub, _ = downsampling_layer(x_input)
+        x_sub_up = downsampling_layer.upsample(x_sub)
+        return x_sub_up
+    
+    equivariance_tests_passed = test_group_equivariance_basic(
+        input_tensor=x,
+        group_type=group_type,
+        order=order,
+        transform_func=test_transform,
+        num_test_elements=3,
+        test_name="2D downsampling layer equivariance"
+    )
+    
+    print(f"✅ Group equivariance tests passed: {equivariance_tests_passed}/3")
 
 
 class TestDownsamplingLayer:
     """Test group downsampling layer functionality."""
 
-    @pytest.mark.parametrize("group_type,order,sub_group_type,subsampling_factor", [
-        ("dihedral", 12, "dihedral", 2),
-        ("dihedral", 8, "cycle", 2),
-        ("cycle", 8, "cycle", 2),
-    ])
+    @pytest.mark.parametrize("group_config", STANDARD_2D_GROUP_CONFIGS)
     @device_real_dtype_parametrize
     def test_downsampling_layer_functionality(
-        self, group_type, order, sub_group_type, subsampling_factor, device, dtype
+        self, group_config, device, dtype
     ):
         """Test downsampling layer with different group configurations."""
+        group_type = group_config["group_type"]
+        order = group_config["order"]
+        sub_group_type = group_config["sub_group_type"]
+        subsampling_factor = group_config["subsampling_factor"]
+        
         print(f"*****Testing {group_type}->{sub_group_type} Downsampling Layer******")
         
         d_layer = SubgroupDownsample(
@@ -87,42 +107,9 @@ class TestDownsamplingLayer:
             dtype=dtype,
             sample_type="sample",
             apply_antialiasing=True,
-            anti_aliasing_kwargs={
-                "smooth_operator": "adjacency",
-                "mode": "analytical",  # Use faster analytical mode for tests
-                "iterations": 100,
-                "smoothness_loss_weight": 1.0,
-                "threshold": 0.0,
-                "equi_constraint": True,
-                "equi_correction": False,
-            },
+            anti_aliasing_kwargs=FAST_ANTI_ALIASING_CONFIG,
             cannonicalize=False,
         )
         layer_tester_rn(downsampling_layer=d_layer)
 
-    # def test_original_configuration(self):
-    #     """Test the original configuration for backward compatibility."""
-    #     print("*****Testing Original Group Downsampling Layer******")
-    #     d_layer = SubgroupDownsample(
-    #         group_type="dihedral",
-    #         order=12,
-    #         sub_group_type="dihedral",
-    #         subsampling_factor=2,
-    #         num_features=10,
-    #         generator="r-s",
-    #         device="cuda" if torch.cuda.is_available() else "cpu",
-    #         dtype=torch.float32,
-    #         sample_type="sample",
-    #         apply_antialiasing=True,
-    #         anti_aliasing_kwargs={
-    #             "smooth_operator": "adjacency",
-    #             "mode": "analytical",  # Use faster mode for testing
-    #             "iterations": 100,
-    #             "smoothness_loss_weight": 5.0,
-    #             "threshold": 0.0,
-    #             "equi_constraint": True,
-    #             "equi_correction": False,
-    #         },
-    #         cannonicalize=False,
-    #     )
-    #     layer_tester_rn(downsampling_layer=d_layer)
+

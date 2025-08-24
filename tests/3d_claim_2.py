@@ -200,13 +200,4 @@ class Test3DBandlimitedReconstruction:
 
 
 
-# Legacy function for backward compatibility (renamed to avoid pytest collection)
-def run_3d_bandlimited_claim_legacy():
-    """Legacy function - not a test, just for backward compatibility."""
-    return bandlimited_claim_helper_3d(
-        group_type="octahedral",
-        sub_group_type="cycle",
-        subsampling_factor=6,
-        mode="analytical",
-        num_trials=3,
-    )
+

@@ -31,7 +31,7 @@ class SmoothOperatorFactory:
         elif smooth_operator == "graph_shift" and graph_shift is not None:
             smoother = torch.tensor(graph_shift)
         else:
-            raise ValueError("Invalid smooth operator: ", smooth_operator)
+            raise ValueError("Invalid smooth operator:", smooth_operator)
 
         return smoother.to(dtype)
 
@@ -100,7 +100,7 @@ class FourierOps:
         elif dtype in [torch.float, torch.float64]:
             B = torch.transpose(basis, 0, 1)
         else:
-            raise ValueError("Invalid dtype: ", dtype)
+            raise ValueError("Invalid dtype:", dtype)
 
         if len(x.shape) == 1:
             return torch.matmul(B, x.to(basis.dtype))
@@ -109,7 +109,7 @@ class FourierOps:
         elif len(x.shape) == 6:
             return torch.einsum("fg,bcghwd->bcfhwd", B, x.to(basis.dtype))
         else:
-            raise ValueError("Invalid shape: ", x.shape)
+            raise ValueError("Invalid shape:", x.shape)
 
     @staticmethod
     def inverse(x: torch.Tensor, basis: torch.Tensor) -> torch.Tensor:
@@ -120,5 +120,5 @@ class FourierOps:
         elif len(x.shape) == 6:
             return torch.einsum("fg,bcghwd->bcfhwd", basis, x.to(basis.dtype))
         else:
-            raise ValueError("Invalid shape: ", x.shape)
+            raise ValueError("Invalid shape:", x.shape)
 

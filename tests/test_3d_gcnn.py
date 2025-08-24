@@ -42,20 +42,19 @@ class Test3DGCNN:
     @device_real_dtype_parametrize
     def test_3d_gcnn_forward_pass(self, group_config, device, dtype):
         """Test forward pass with different 3D group configurations."""
-        # Skip double precision tests due to ESCNN compatibility issues
         if dtype == torch.float64:
             pytest.skip("Skipping double precision test due to ESCNN 3D convolution dtype limitations")
 
         print(f"*****Testing 3D GCNN Forward Pass: {group_config['dwn_group_types']}******")
 
-        # Test with 3D input tensor
+        # Create 3D input tensor
         batch_size = 2
         input_channels = 1
         depth, height, width = 8, 8, 8
 
         model = Gcnn3D(
             num_layers=2,
-            num_channels=[input_channels, 32, 64],  # input + 2 layer outputs
+            num_channels=[input_channels, 32, 64],
             kernel_sizes=[3, 3],
             num_classes=10,
             dwn_group_types=group_config["dwn_group_types"],
@@ -64,26 +63,20 @@ class Test3DGCNN:
             subsampling_factors=group_config["subsampling_factors"],
             domain=3,
             pooling_type="max",
-            apply_antialiasing=False,  # Disable for faster testing
+            apply_antialiasing=False,
             canonicalize=False,
-            antialiasing_kwargs=None,  # Not needed since apply_antialiasing=False
+            antialiasing_kwargs=None,
             dropout_rate=0.0,
             device=device,
             dtype=dtype,
         )
 
-        # Move model to correct device and dtype
         model = model.to(device=device, dtype=dtype)
-
         x = torch.randn(batch_size, input_channels, depth, height, width).to(device, dtype)
 
-        print(f"Input shape: {x.shape}")
-
-        # Forward pass
+        # Forward pass and verify output
         output = model(x)
-
-        # Check output shape for classification
-        expected_output_shape = (batch_size, 10)  # num_classes=10
+        expected_output_shape = (batch_size, 10)
         assert output.shape == expected_output_shape, \
             f"Expected output shape {expected_output_shape}, got {output.shape}"
 

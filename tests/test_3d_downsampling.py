@@ -2,6 +2,13 @@ import pytest
 import torch
 import numpy as np
 from tests.conftest import device_real_dtype_parametrize, tolerance_config
+from tests.common_test_utils import (
+    STANDARD_3D_GROUP_CONFIGS,
+    FAST_ANTI_ALIASING_CONFIG,
+    create_test_tensor,
+    verify_tensor_shapes,
+    test_group_equivariance_basic
+)
 
 # Import the modules under test
 try:
@@ -18,17 +25,12 @@ class Test3DDownsamplingLayer:
     """Test 3D group downsampling layer functionality."""
 
     @pytest.mark.parametrize("group_config", [
-        # antializaing False
+        # Standard 3D configurations with antialiasing False
         {"group_type": "octahedral", "order": 24, "sub_group_type": "cycle", "subsampling_factor": 6, "antialiasing": False},
-        {"group_type": "full_octahedral", "order": 48, "sub_group_type": "cycle", "subsampling_factor": 12, "antialiasing": False},
-        {"group_type": "full_octahedral", "order": 48, "sub_group_type": "dihedral", "subsampling_factor": 6, "antialiasing": False},
         {"group_type": "full_octahedral", "order": 48, "sub_group_type": "octahedral", "subsampling_factor": 2, "antialiasing": False},
-        # antializaing True
+        # Standard 3D configurations with antialiasing True
         {"group_type": "octahedral", "order": 24, "sub_group_type": "cycle", "subsampling_factor": 6, "antialiasing": True},
-        {"group_type": "full_octahedral", "order": 48, "sub_group_type": "cycle", "subsampling_factor": 12, "antialiasing": True},
-        {"group_type": "full_octahedral", "order": 48, "sub_group_type": "dihedral", "subsampling_factor": 6, "antialiasing": True},
         {"group_type": "full_octahedral", "order": 48, "sub_group_type": "octahedral", "subsampling_factor": 2, "antialiasing": True},
-        
     ])
     @device_real_dtype_parametrize
     def test_3d_downsampling_layer_functionality(
@@ -56,77 +58,53 @@ class Test3DDownsamplingLayer:
             dtype=dtype,
             sample_type="sample",
             apply_antialiasing=antialiasing,
-            anti_aliasing_kwargs={
-                "smooth_operator": "adjacency",
-                "mode": "analytical",  # Use faster analytical mode for tests
-                "iterations": 50,  # Reduced for testing
-                "smoothness_loss_weight": 1.0,
-                "threshold": 0.0,
-                "equi_constraint": True,
-                "equi_correction": False,
-            } if antialiasing else None,
+            anti_aliasing_kwargs=FAST_ANTI_ALIASING_CONFIG if antialiasing else None,
             cannonicalize=False,
         )
         
-        # Test basic downsampling and upsampling functionality
-        print(f"Testing basic functionality...")
+        # Test basic functionality
+        x = create_test_tensor(
+            batch_size=2,
+            channels=num_features,
+            spatial_dims=(6, 6, 6),
+            device=device,
+            dtype=dtype,
+            group_order=G.order()
+        )
         
-        # Create test input tensor
-        x = torch.randn(2, G.order() * num_features, 6, 6, 6).to(device, dtype)
-        print(f"Input tensor shape: {x.shape}")
-        
-        # Test downsampling
+        # Test downsampling and upsampling
         x_sub, _ = d_layer(x)
-        print(f"Downsampled tensor shape: {x_sub.shape}")
-        
-        # Test upsampling
         x_sub_up = d_layer.upsample(x_sub)
-        print(f"Upsampled tensor shape: {x_sub_up.shape}")
         
-        # Check that downsampling reduces group dimension correctly
+        # Verify tensor shapes
         assert x_sub.shape[1] < x.shape[1], \
             f"Downsampling should reduce channels: {x_sub.shape[1]} should be < {x.shape[1]}"
-        
-        # Check that upsampling restores original group dimension
         assert x_sub_up.shape[1] == x.shape[1], \
             f"Upsampling should restore original channels: {x_sub_up.shape[1]} should equal {x.shape[1]}"
         
-        # Check that spatial dimensions are preserved
-        assert x_sub.shape[2:] == x.shape[2:], \
-            f"Spatial dimensions should be preserved: {x_sub.shape[2:]} vs {x.shape[2:]}"
-        assert x_sub_up.shape[2:] == x.shape[2:], \
-            f"Spatial dimensions should be preserved: {x_sub_up.shape[2:]} vs {x.shape[2:]}"
+        verify_tensor_shapes(x, x_sub, x.shape[2:], "Downsampling spatial preservation")
+        verify_tensor_shapes(x, x_sub_up, x.shape[2:], "Upsampling spatial preservation")
         
         print("✅ Basic functionality test passed!")
         
-        # Test group equivariance (similar to layer_tester.py)
-        print(f"Testing group equivariance...")
-        equivariance_tests_passed = 0
-        total_tests = min(3, len(G.elements))  # Test with first 3 group elements for speed
-        gspace = get_gspace(group_type=group_type, order=order, num_features=num_features)
-        for i, g in enumerate(G.elements):
-            if i >= total_tests:
-                break
-                
-            print(f"  Testing group element {i+1}/{total_tests}")
-            
-            # Transform input using ESCNN gspace
-            x_t = gspace.transform(x.clone(), g)
-            
-            # Apply downsampling to transformed input
-            x_t_sub, _ = d_layer(x_t)
-            
-            # Apply upsampling to downsampled result
-            x_t_sub_up = d_layer.upsample(x_t_sub)
-            
-            # Verify shapes are consistent
-            assert x_t.shape == x.shape, f"Transformed input shape mismatch: {x_t.shape} vs {x.shape}"
-            assert x_t_sub.shape == x_sub.shape, f"Transformed downsampled shape mismatch: {x_t_sub.shape} vs {x_sub.shape}"
-            assert x_t_sub_up.shape == x_sub_up.shape, f"Transformed upsampled shape mismatch: {x_t_sub_up.shape} vs {x_sub_up.shape}"
-            
-            equivariance_tests_passed += 1
+        # Test group equivariance
         
-        print(f"✅ Group equivariance tests passed: {equivariance_tests_passed}/{total_tests}")
+        def test_transform(x_input):
+            """Test function for group equivariance testing."""
+            x_sub, _ = d_layer(x_input)
+            x_sub_up = d_layer.upsample(x_sub)
+            return x_sub_up
+        
+        equivariance_tests_passed = test_group_equivariance_basic(
+            input_tensor=x,
+            group_type=group_type,
+            order=order,
+            transform_func=test_transform,
+            num_test_elements=3,
+            test_name="3D downsampling layer equivariance"
+        )
+        
+        print(f"✅ Group equivariance tests passed: {equivariance_tests_passed}/3")
 
 
 

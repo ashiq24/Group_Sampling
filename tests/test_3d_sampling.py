@@ -1,20 +1,4 @@
-"""
-Tests for 3D Group Subsampling Strategies.
-
-This module tests the 3D group subsampling strategies implemented in gsampling/core/subsampling.py:
-
-1. **OctahedralToCycleStrategy**: Subsamples octahedral group (24 elements) to cyclic subgroup (4 elements)
-2. **FullOctahedralToCycleStrategy**: Subsamples full octahedral group (48 elements) to cyclic subgroup (4 elements)
-3. **FullOctahedralToDihedralStrategy**: Subsamples full octahedral group (48 elements) to dihedral subgroup (8 elements)
-4. **FullOctahedralToOctahedralStrategy**: Subsamples full octahedral group (48 elements) to octahedral subgroup (24 elements)
-
-**Mathematical Background:**
-- Octahedral group O: 24 rotational symmetries of regular octahedron
-- Full octahedral group O_h: 48 symmetries including reflections
-- Cyclic subgroup C4: 4-fold rotations around z-axis
-- Dihedral subgroup D4: 8 symmetries (4 rotations + 4 reflections) around z-axis
-- Subsampling preserves group structure and equivariance properties
-"""
+"""Tests for 3D Group Subsampling Strategies."""
 
 import pytest
 import numpy as np
@@ -46,17 +30,14 @@ OCTAHEDRAL_TEST_CONFIGS = [
 ]
 
 FULL_OCTAHEDRAL_CYCLE_TEST_CONFIGS = [
-    # (group_size, expected_subgroup_size, description)
     (48, 4, "Full Octahedral O_h → Cyclic C4"),
 ]
 
 FULL_OCTAHEDRAL_DIHEDRAL_TEST_CONFIGS = [
-    # (group_size, expected_subgroup_size, description)
     (48, 8, "Full Octahedral O_h → Dihedral D4"),
 ]
 
 FULL_OCTAHEDRAL_OCTAHEDRAL_TEST_CONFIGS = [
-    # (group_size, expected_subgroup_size, description)
     (48, 24, "Full Octahedral O_h → Octahedral O"),
 ]
 

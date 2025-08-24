@@ -41,18 +41,19 @@ class Cannonicalizer(nn.EquivariantModule):
                 self.gspace, in_channels * [self.gspace.regular_repr]
             )
         else:
-            raise ValueError("Unknown group : ", group)
+            raise ValueError("Unknown group:", group)
 
         self.buffer = None
 
     def coset_rep_r2(self, x):
+        """Compute coset representatives for 2D tensors.
+        
+        Args:
+            x: Input tensor of shape (batch, group * in_channels, h, w)
         """
-        x: (batch, group * in_channels, h, w)
-        """
-        fiber = x[:, : self.nodes_num, :, :]
+        fiber = x[:, :self.nodes_num, :, :]
         fiber = torch.permute(fiber, (0, 2, 3, 1)).reshape(x.shape[0], -1)
         v = torch.argmax(fiber, dim=1)
-        k, _ = torch.max(fiber, dim=1)
 
         v = v % self.nodes_num
         if self.group == "dihedral" and self.subgroup == "dihedral":
@@ -73,8 +74,10 @@ class Cannonicalizer(nn.EquivariantModule):
         return v
 
     def coset_rep(self, x):
-        """
-        x: ( group )
+        """Compute coset representatives for 1D tensors.
+        
+        Args:
+            x: Input tensor of shape (group,)
         """
         fiber = x
         v = torch.argmax(fiber)

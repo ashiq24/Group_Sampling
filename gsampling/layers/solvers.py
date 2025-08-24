@@ -168,6 +168,6 @@ def solve_M(
         return M_out
 
     else:
-        raise ValueError("Invalid mode: ", mode)
+        raise ValueError("Invalid mode:", mode)
 
 

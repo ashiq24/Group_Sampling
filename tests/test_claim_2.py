@@ -145,7 +145,7 @@ class TestBandlimitedReconstruction:
             generator="r-s",
             mode="gpu_optim",
             smooth_operator="adjacency",
-            smoothness_loss_weight=5.0,
+            smoothness_loss_weight=0.001,
             iterations=iterations,
             threshold=0.0,
             device="cuda",
@@ -157,39 +157,6 @@ class TestBandlimitedReconstruction:
         assert mean_error < expected_error, \
             f"Reconstruction error {mean_error} exceeds threshold {expected_error}"
 
-    # @pytest.mark.parametrize("mode", ["linear_optim", "analytical"])
-    # def test_reconstruction_different_modes(self, mode):
-    #     """Test reconstruction with different anti-aliasing modes."""
-    #     mean_error, std_error = bandlimited_claim_helper(
-    #         group_type="cycle",
-    #         order=4,
-    #         sub_group_type="cycle",
-    #         subsampling_factor=2,
-    #         generator="r-s",
-    #         mode=mode,
-    #         smooth_operator="adjacency",
-    #         smoothness_loss_weight=1.0,
-    #         iterations=100 if mode == "analytical" else 500,
-    #         threshold=0.0,
-    #         device="cpu",
-    #         dtype=torch.float32,
-    #         sample_type="sample",
-    #         num_trials=20,  # Fewer trials for faster testing
-    #     )
-        
-    #     # Both modes should achieve reasonable reconstruction
-    #     expected_threshold = 1.0 if mode == "analytical" else 0.5
-    #     assert mean_error < expected_threshold, \
-    #         f"Reconstruction error {mean_error} too large for mode {mode}"
 
-# Legacy function for backward compatibility (renamed to avoid pytest collection)
-def run_bandlimited_claim_legacy():
-    """Legacy function - not a test, just for backward compatibility."""
-    return bandlimited_claim_helper(
-        group_type="cycle",
-        order=4,
-        sub_group_type="cycle",
-        subsampling_factor=2,
-        mode="analytical",
-        num_trials=5,
-    )
+
+

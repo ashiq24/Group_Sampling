@@ -1,12 +1,4 @@
-"""
-Test suite for 3D Group Equivariant Convolution layers.
-
-This module tests the rnConv layer with domain=3 for:
-- 2D groups acting on 3D data (dihedralOnR3, rot2dOnR3)
-- 3D groups acting on 3D data (octahedral, full_octahedral)
-- Tensor shape validation and group equivariance
-- Forward pass with realistic 3D input tensors
-"""
+"""Test suite for 3D Group Equivariant Convolution layers."""
 
 import pytest
 import torch
@@ -32,12 +24,9 @@ def device_dtype():
 def group_configs():
     """Provide different group configurations for testing."""
     return [
-        # 2D groups on 3D data
         {"type": "dihedral", "order": 8, "description": "Dihedral D8 on 3D data"},
         {"type": "cycle", "order": 4, "description": "Cyclic C4 on 3D data"},
         {"type": "cycle", "order": 8, "description": "Cyclic C8 on 3D data"},
-        
-        # 3D groups on 3D data
         {"type": "octahedral", "order": 24, "description": "Octahedral group O"},
         {"type": "full_octahedral", "order": 48, "description": "Full octahedral group O_h"},
     ]
