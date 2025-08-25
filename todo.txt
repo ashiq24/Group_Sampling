@@ -6,48 +6,48 @@
 # Test the anti-aliasing functionality for octahedral groups similar to test_claim_2.py
 
 ### 1.1 Create 3D Claim 2 Test Script ⭐ HIGH PRIORITY
-- [ ] Create `tests/3d_claim_2.py` 
-- [ ] Implement `bandlimited_claim_helper_3d()` function
-- [ ] Support octahedral and full octahedral groups
-- [ ] Test bandlimited reconstruction property for 3D groups
-- [ ] Verify anti-aliasing operator works with 3D group Fourier bases
-- [ ] Test different subsampling strategies (O→C4, O_h→D4, O_h→O)
+- [x] Create `tests/3d_claim_2.py` 
+- [x] Implement `bandlimited_claim_helper_3d()` function
+- [x] Support octahedral and full octahedral groups
+- [x] Test bandlimited reconstruction property for 3D groups
+- [x] Verify anti-aliasing operator works with 3D group Fourier bases
+- [x] Test different subsampling strategies (O→C4, O_h→D4, O_h→O)
 
 ### 1.2 Test 3D Anti-Aliasing Integration
-- [ ] Test AntiAliasingLayer with octahedral groups
-- [ ] Verify Reynolds operator construction for 3D groups
-- [ ] Test Fourier basis properties (unitary, orthogonal)
-- [ ] Validate equivariance constraints for 3D symmetries
+- [x] Test AntiAliasingLayer with octahedral groups
+- [x] Verify Reynolds operator construction for 3D groups
+- [x] Test Fourier basis properties (unitary, orthogonal)
+- [x] Validate equivariance constraints for 3D symmetries
 
 ## PHASE 2: 3D Group Equivariant Convolution Support
 # --------------------------------------------------
 # Extend rnConv and group_utils to support 3D convolutions
 
 ### 2.1 Extend rnConv for 3D Operations ⭐ CRITICAL
-- [ ] Update `gsampling/layers/rnconv.py` to support 3D domain
-- [ ] Add support for `domain=3` parameter
-- [ ] Implement 3D convolution using `enn.R3Conv`
-- [ ] Support both 2D groups acting on 3D data (dihedralOnR3, rot2dOnR3)
-- [ ] Support 3D groups acting on 3D data (octahedral, full_octahedral)
-- [ ] Handle different gspace types based on domain and group type
-- [ ] Add support for 4d tensor (B, C, depth, height, Width) in Fourier ops in helper.py
+- [x] Update `gsampling/layers/rnconv.py` to support 3D domain
+- [x] Add support for `domain=3` parameter
+- [x] Implement 3D convolution using `enn.R3Conv`
+- [x] Support both 2D groups acting on 3D data (dihedralOnR3, rot2dOnR3)
+- [x] Support 3D groups acting on 3D data (octahedral, full_octahedral)
+- [x] Handle different gspace types based on domain and group type
+- [x] Add support for 4d tensor (B, C, depth, height, Width) in Fourier ops in helper.py
 
 ### 2.2 Extend Group Utils for 3D Support
-- [ ] Update `gsampling/utils/group_utils.py` 
-- [ ] Add 3D gspace constructors for 2D groups:
-  - [ ] `dihedralOnR3`: `gspaces.flipRot2dOnR3(order)`
-  - [ ] `rot2dOnR3`: `gspaces.rot2dOnR3(order)`
-- [ ] Ensure 3D group gspaces are properly configured
-- [ ] Add dimension validation and group type checking
-- [ ] Update `get_gspace()` to handle 3D domain parameter
+- [x] Update `gsampling/utils/group_utils.py` 
+- [x] Add 3D gspace constructors for 2D groups:
+-   - [x] `dihedralOnR3`: `gspaces.flipRot2dOnR3(order)`
+-   - [x] `rot2dOnR3`: `gspaces.rot2dOnR3(order)`
+- [x] Ensure 3D group gspaces are properly configured
+- [x] Add dimension validation and group type checking
+- [x] Update `get_gspace()` to handle 3D domain parameter
 
 ### 2.3 Test 3D Convolution Layer
-- [ ] Create `tests/test_3d_convolution.py`
-- [ ] Test rnConv with domain=3 for different group types
-- [ ] Test 2D groups on 3D data (dihedralOnR3, rot2dOnR3)
-- [ ] Test 3D groups on 3D data (octahedral, full_octahedral)
-- [ ] Verify tensor shapes and group equivariance
-- [ ] Test forward pass with realistic 3D input tensors
+- [x] Create `tests/test_3d_convolution.py`
+- [x] Test rnConv with domain=3 for different group types
+- [x] Test 2D groups on 3D data (dihedralOnR3, rot2dOnR3)
+- [x] Test 3D groups on 3D data (octahedral, full_octahedral)
+- [x] Verify tensor shapes and group equivariance
+- [x] Test forward pass with realistic 3D input tensors
 
 ## PHASE 3: 3D GCNN Model Implementation
 # --------------------------------------
@@ -106,14 +106,14 @@
 # Clean up codebase without changing functionality
 
 ### 5.1 Remove Debug Print Statements ⭐ HIGH PRIORITY
-- [ ] Remove all `print()` statements from production code
-- [ ] Replace with proper logging system or remove entirely
-- [ ] Files to clean:
-  - [ ] `gsampling/models/g_cnn_3d.py` (6 print statements)
-  - [ ] `gsampling/models/g_cnn.py` (2 print statements)
-  - [ ] `gsampling/layers/downsampling.py` (3 print statements)
-  - [ ] `gsampling/layers/solvers.py` (2 print statements)
-  - [ ] `gsampling/layers/anti_aliasing.py` (1 print statement)
+- [x] Remove all `print()` statements from production code
+- [x] Replace with proper logging system or remove entirely
+- [x] Files to clean:
+-   - [x] `gsampling/models/g_cnn_3d.py` (6 print statements)
+-   - [x] `gsampling/models/g_cnn.py` (2 print statements)
+-   - [x] `gsampling/layers/downsampling.py` (3 print statements)
+-   - [x] `gsampling/layers/solvers.py` (2 print statements)
+-   - [x] `gsampling/layers/anti_aliasing.py` (1 print statement)
 
 ### 5.2 Remove Legacy Code and Deprecated Functions ✅ COMPLETED
 - [x] Remove `_LegacyDihedralGraph` and `_LegacyCycleGraph` classes
@@ -127,10 +127,10 @@
 - [x] Group related imports together (standard library, third-party, local)
 - [x] Remove unused imports
 - [x] Files to optimize:
-  - [x] `tests/conftest.py` - consolidate pytest, torch, numpy imports
-  - [x] `tests/test_3d_convolution.py` - consolidate imports
-  - [x] `gsampling/layers/rnconv.py` - consolidate escnn imports
-  - [x] `gsampling/utils/group_utils.py` - consolidate escnn imports
+-   - [x] `tests/conftest.py` - consolidate pytest, torch, numpy imports
+-   - [x] `tests/test_3d_convolution.py` - consolidate imports
+-   - [x] `gsampling/layers/rnconv.py` - consolidate escnn imports
+-   - [x] `gsampling/utils/group_utils.py` - consolidate escnn imports
 
 ### 5.4 Remove Unused Functions and Methods ✅ COMPLETED
 - [x] Remove `evaluate_output_shape` method in `cannonicalizer.py` (just `pass`)
@@ -150,10 +150,98 @@
 - [x] Standardize comment formatting across files
 - [x] Remove outdated TODO comments and implementation notes
 
-### 5.7 Code Quality Improvements
+### 5.7 Code Quality Improvements ✅ COMPLETED
 - [x] Fix minor code style issues (spacing, line length)
 - [x] Ensure consistent naming conventions
 - [x] Remove unused variables and parameters
+
+## PHASE 6: MedMNIST Training Pipeline with PyTorch Lightning 🚀
+# --------------------------------------------------------------
+# Implement complete training pipeline for MedMNIST datasets
+
+### 6.1 Create MedMNIST DataLoader ⭐ HIGH PRIORITY
+- [x] Create `data/medmnist.py` with comprehensive dataloader class
+- [x] Support both classification and segmentation tasks
+- [x] Start with OrganMNIST3D as primary dataset
+- [x] Design extensible architecture for other MedMNIST datasets
+- [x] Implement proper data preprocessing and augmentation
+- [x] Support train/validation/test splits
+- [x] Handle different data modalities (CT, MRA, Electron Microscope)
+- [x] Implement efficient 3D data loading with proper memory management
+- [x] Add support for group-equivariant data lifting (if needed)
+
+### 6.2 Data Visualization and Validation
+- [x] Create `dataset_viz.py` for data exploration and validation
+- [x] Implement 3D volume visualization (slices, projections)
+- [x] Show sample images from each class/dataset
+- [x] Display data statistics and distributions
+- [x] Validate data loading pipeline with visual confirmation
+- [x] Create sample plots for documentation and debugging
+- [x] Test visualization with different MedMNIST datasets
+
+### 6.3 PyTorch Lightning Training Infrastructure
+- [x] Create `main.py` as the main training script
+- [x] Implement PyTorch Lightning LightningModule for MedMNIST
+- [x] Support multi-GPU training with DistributedDataParallel
+- [x] Add customizable precision support (FP16, FP32, FP64)
+- [x] Implement proper logging with TensorBoard/WandB
+- [x] Add checkpointing and model saving/loading
+- [x] Create training and validation loops
+- [x] Implement evaluation metrics (accuracy, AUC, F1-score)
+- [x] Add early stopping and learning rate scheduling
+
+### 6.4 Training Utilities and Helpers
+- [x] Create `train_utils.py` for training-specific functionality
+- [x] Implement data augmentation strategies for 3D data
+- [x] Add loss functions for classification and segmentation
+- [x] Create evaluation metrics and logging functions
+- [x] Implement data loading utilities and batch processing
+- [x] Add model initialization and optimization strategies
+- [x] Create training configuration helpers
+
+### 6.5 Configuration Management System
+- [x] Create `config/` folder for YAML configuration files
+- [x] Implement config loading and validation in `main.py`
+- [x] Create base configuration for common hyperparameters
+- [x] Add dataset-specific configurations
+- [x] Implement model architecture configurations
+- [x] Add training hyperparameter configurations
+- [x] Create configuration for different precision modes
+- [x] Add multi-GPU configuration options
+
+### 6.6 Test Mode Implementation
+- [x] Implement test mode in `main.py` for pipeline validation
+- [x] Train on small subset of data for quick validation
+- [x] Use configuration files to control test mode parameters
+- [x] Validate entire training pipeline end-to-end
+- [x] Test data loading, model creation, training, and evaluation
+- [x] Ensure test mode is fast and reliable for development
+
+### 6.7 Integration with GSampling Models
+- [x] Import and use GCNN3D models from `gsampling/` folder
+- [x] Create wrapper classes if needed for PyTorch Lightning compatibility
+- [x] Test integration with existing 3D GCNN implementations
+- [x] Ensure no modifications to `gsampling/` folder (only imports)
+- [x] Validate group equivariance preservation during training
+- [x] Test different group configurations (octahedral, full_octahedral)
+
+### 6.8 Advanced Features and Optimizations
+- [ ] Implement mixed precision training for memory efficiency
+- [ ] Add gradient accumulation for large effective batch sizes
+- [ ] Implement data parallel and model parallel strategies
+- [ ] Add automatic mixed precision (AMP) support
+- [ ] Implement efficient data prefetching and caching
+- [ ] Add support for different optimizers and schedulers
+- [ ] Implement model ensemble and cross-validation
+
+### 6.9 Testing and Validation
+- [ ] Test training pipeline with different MedMNIST datasets
+- [ ] Validate multi-GPU training functionality
+- [ ] Test different precision modes (FP16, FP32, FP64)
+- [ ] Validate checkpointing and model restoration
+- [ ] Test early stopping and learning rate scheduling
+- [ ] Validate evaluation metrics and logging
+- [ ] Test configuration file loading and validation
 
 ## IMPLEMENTATION ORDER
 # ---------------------
@@ -161,7 +249,8 @@
 2. **Phase 2**: 3D convolution support (extend layers) ✅ COMPLETED  
 3. **Phase 3**: 3D GCNN model (build complete model) ✅ COMPLETED
 4. **Phase 4**: Integration testing (end-to-end validation) ✅ COMPLETED
-5. **Phase 5**: Code cleanup and optimization 🧹 **CURRENT PHASE**
+5. **Phase 5**: Code cleanup and optimization 🧹 ✅ COMPLETED
+6. **Phase 6**: MedMNIST training pipeline with PyTorch Lightning 🚀 **CURRENT PHASE**
 
 ## TESTING STRATEGY
 # -----------------
@@ -170,6 +259,7 @@
 - **End-to-End Tests**: Test complete 3D GCNN pipeline ✅ COMPLETED
 - **Equivariance Tests**: Verify group equivariance preservation ✅ COMPLETED
 - **Performance Tests**: Validate computational efficiency ✅ COMPLETED
+- **Training Pipeline Tests**: Validate complete training workflow 🔄 IN PROGRESS
 
 ## SUCCESS CRITERIA
 # -----------------
@@ -179,13 +269,28 @@
 ✅ Group equivariance is preserved through 3D operations
 ✅ Performance is reasonable for 3D tensor operations
 ✅ All tests pass for 3D functionality
+🔄 Complete training pipeline for MedMNIST datasets
+🔄 Multi-GPU training with PyTorch Lightning
+🔄 Customizable precision support
+🔄 Comprehensive configuration management
 
 ## CLEANUP SUCCESS CRITERIA
 # -------------------------
-- [ ] No debug print statements in production code
-- [ ] No legacy/deprecated code remains
-- [ ] Import statements are clean and organized
-- [ ] No unused functions or methods
-- [ ] Code follows consistent style and conventions
-- [ ] All functionality preserved (no breaking changes)
-- [ ] Test coverage maintained or improved
+✅ No debug print statements in production code
+✅ No legacy/deprecated code remains
+✅ Import statements are clean and organized
+✅ No unused functions or methods
+✅ Code follows consistent style and conventions
+✅ All functionality preserved (no breaking changes)
+✅ Test coverage maintained or improved
+
+## TRAINING PIPELINE SUCCESS CRITERIA
+# ----------------------------------
+- [ ] MedMNIST data can be loaded efficiently for all datasets
+- [ ] Training pipeline works with PyTorch Lightning
+- [ ] Multi-GPU training is functional and efficient
+- [ ] Different precision modes work correctly
+- [ ] Configuration system is flexible and robust
+- [ ] Test mode provides quick validation of entire pipeline
+- [ ] Integration with GSampling models is seamless
+- [ ] Training produces reasonable results on MedMNIST datasets

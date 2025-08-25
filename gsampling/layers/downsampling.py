@@ -21,7 +21,7 @@ class SubgroupDownsample(nn.Module):
         sample_type: str = "sample",
         apply_antialiasing: bool = False,
         anti_aliasing_kwargs: dict = None,
-        cannonicalize: bool = False,
+
     ):
         """
         A PyTorch module for downsampling features over groups (regular representation) to subgroups
@@ -50,9 +50,8 @@ class SubgroupDownsample(nn.Module):
             sample_type (str, optional): Type of sampling strategy (e.g., 'sample', 'pool'). 'sample' by default, which
                 discards elements that are not in the subgroup.
                 'pool' will perform trivial max pooling over the group dimension.
-            apply_antialiasing (bool, optional): Whether to apply anti-aliasing.
-            anti_aliasing_kwargs (dict, optional): Arguments for anti-aliasing class.
-            cannonicalize (bool, optional): Whether to apply canonicalization following [1].
+                    apply_antialiasing (bool, optional): Whether to apply anti-aliasing.
+        anti_aliasing_kwargs (dict, optional): Arguments for anti-aliasing class.
         ---------
         1. Jin Xu, Hyunjik Kim, Tom Rainforth, Yee Whye Teh "Group Equivariant Subsampling"
 
@@ -128,6 +127,10 @@ class SubgroupDownsample(nn.Module):
 
         # Initialize anti-aliasing layer if applicable
         if apply_antialiasing:
+            # Filter out keys that are not expected by AntiAliasingLayer
+            filtered_kwargs = {k: v for k, v in self.anti_aliasing_kwargs.items() 
+                              if k not in ['apply_antialiasing']}
+            
             self.anti_aliaser = AntiAliasingLayer(
                 nodes=self.graphs.graph.nodes,
                 adjaceny_matrix=self.graphs.graph.adjacency_matrix,
@@ -137,7 +140,7 @@ class SubgroupDownsample(nn.Module):
                 dtype=self.dtype,
                 device=self.device,
                 raynold_op=self.graphs.graph.equi_raynold_op,
-                **self.anti_aliasing_kwargs
+                **filtered_kwargs
             )
             self.anti_aliaser.to(device=self.device, dtype=self.dtype)
         else:

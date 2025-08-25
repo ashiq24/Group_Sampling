@@ -1,0 +1,170 @@
+# OrganMNIST3D Dataset Configuration
+# ==================================
+# This configuration extends the base configuration with specific settings
+# for the OrganMNIST3D dataset (11-class abdominal organ classification).
+
+# Import base configuration
+imports:
+  - "base_config.yaml"
+
+# Override dataset-specific settings
+data:
+  dataset_name: "organmnist3d"
+  batch_size: 8  # Optimized for 3D data and GPU memory
+  num_workers: 4
+  normalize: true
+  norm_method: "medmnist_standard"  # Use dataset-specific normalization
+  augment: true
+ order
+
+# Model configuration optimized for OrganMNIST3D
+model:
+  num_classes: 11  # 11 abdominal organs
+  num_layers: 4    # Slightly deeper for complex organ classification
+  num_channels: [32, 64, 128, 256]  # Progressive channel increase
+  kernel_sizes: [3, 3, 3, 3]        # Consistent 3x3x3 kernels
+  
+  # Group configuration optimized for octahedral symmetry
+  group_config:
+    init_group_order: 24        # Octahedral group
+    dwn_group_types: [
+      ["octahedral", "octahedral"],  # Layer 1: No group downsampling
+      ["octahedral", "octahedral"],  # Layer 2: No group downsampling  
+      ["octahedral", "cycle"],       # Layer 3: O → C6
+      ["cycle", "cycle"]             # Layer 4: C6 → C6
+    ]
+    subsampling_factors: [1, 1, 6, 1]      # Group subsampling ratios
+    spatial_subsampling_factors: [1, 2, 2, 2]  # Spatial stride factors
+  
+  # Anti-aliasing configuration for smooth group transitions
+  antialiasing:
+    apply_antialiasing: true
+    smooth_operator: "adjacency"
+    mode: "analytical"  # Fast analytical mode
+    iterations: 100
+    smoothness_loss_weight: 1.0
+    threshold: 0.0
+    equi_constraint: true
+    equi_correction: false
+  
+  # Model settings
+  pooling_type: "max"           # Max pooling for organ features
+  dropout_rate: 0.2             # Higher dropout for medical data
+  fully_convolutional: false
+
+# Training configuration optimized for medical image classification
+training:
+  max_epochs: 150               # More epochs for complex task
+  learning_rate: 0.0005         # Lower learning rate for stability
+  
+  # Optimizer settings
+  optimizer:
+    name: "adamw"               # AdamW for better generalization
+    params:
+      lr: 0.0005
+      weight_decay: 1e-4        # Higher weight decay
+      betas: [0.9, 0.999]
+      eps: 1e-8
+  
+  # Scheduler for medical data
+  scheduler:
+    name: "cosine"              # Cosine annealing for smooth convergence
+    params:
+      T_max: 150
+      eta_min: 1e-6
+  
+  # Loss function for multi-class classification
+  loss:
+    name: "cross_entropy"       # Standard cross-entropy
+    params: {}
+  
+  # Early stopping for medical applications
+  early_stopping:
+    enabled: true
+    patience: 20                # More patience for medical data
+    min_delta: 0.001
+    monitor: "val_loss"
+    mode: "min"
+
+# Hardware configuration for 3D medical imaging
+hardware:
+  gpus: -1                      # Use all available GPUs
+  precision: 16                 # Mixed precision for efficiency
+  accelerator: "gpu"
+  strategy: "auto"
+  accumulate_grad_batches: 2    # Effective batch size = 16
+
+# Logging for medical experiments
+logging:
+  logger: "tensorboard"
+  project_name: "medmnist_gcnn"
+  experiment_name: "organmnist3d_octahedral_deep"
+  tags: ["3d", "gcnn", "medmnist", "octahedral", "organs", "medical"]
+  
+  # Checkpointing
+  save_dir: "./checkpoints/organmnist3d"
+  filename: "organmnist3d_{epoch:02d}-{val_loss:.3f}-{val_acc:.3f}"
+
+# Evaluation metrics for medical classification
+evaluation:
+  metrics: ["accuracy", "auc", "f1", "precision", "recall", "specificity"]
+  test_after_training: true
+  save_predictions: true        # Save predictions for medical analysis
+  confusion_matrix: true
+  
+  # Validation frequency
+  val_check_interval: 1.0
+  check_val_every_n_epoch: 1
+
+# Test mode configuration
+test_mode:
+  enabled: false
+  max_samples: 200              # More samples for medical validation
+  max_epochs: 10
+  batch_size: 4
+  fast_dev_run: false
+  limit_train_batches: 0.2      # 20% of training data
+  limit_val_batches: 0.2        # 20% of validation data
+  limit_test_batches: 0.2       # 20% of test data
+
+# Advanced medical-specific settings
+advanced:
+  # Data augmentation for medical images
+  augmentation:
+    rotation_range: 10          # Conservative rotation for medical data
+    scale_range: [0.95, 1.05]  # Small scale changes
+    flip_probability: 0.3       # Lower flip probability
+  
+  # Model initialization for medical applications
+  initialization:
+    weight_init: "kaiming"      # Kaiming initialization
+    bias_init: "zeros"
+  
+  # Regularization for medical data
+  regularization:
+    dropout: 0.2
+    batch_norm: true
+    layer_norm: false
+  
+  # Debugging for medical experiments
+  debugging:
+    log_grad_norm: true         # Monitor gradients
+    log_learning_rate: true
+    log_memory_usage: true      # Monitor memory usage
+    detect_anomaly: false       # Disable for production
+
+# Dataset-specific notes
+notes:
+  description: "OrganMNIST3D configuration optimized for 11-class abdominal organ classification"
+  modality: "CT (Computed Tomography)"
+  task: "Multi-class classification"
+  classes: "11 abdominal organs"
+  data_shape: "28x28x28 voxels"
+  group_symmetry: "Octahedral (O) with progressive downsampling to cyclic"
+  key_features:
+    - "4-layer GCNN with octahedral group symmetry"
+    - "Progressive group downsampling: O → O → O → C6 → C6"
+    - "Mixed precision training for efficiency"
+    - "Conservative data augmentation for medical data"
+    - "Comprehensive evaluation metrics for medical applications"
+

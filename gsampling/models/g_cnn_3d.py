@@ -22,7 +22,6 @@ class Gcnn3D(nn.Module):
         domain,
         pooling_type,
         apply_antialiasing,
-        canonicalize,
         antialiasing_kwargs,
         dropout_rate,
         dtype=torch.float32,
@@ -51,7 +50,6 @@ class Gcnn3D(nn.Module):
             domain (int): Input dimension (3 for 3D data)
             pooling_type (str): Final pooling method ('max' or 'mean')
             apply_antialiasing (bool): Enable spectral anti-aliasing in group subsampling
-            canonicalize (bool): Standardize group element ordering
             antialiasing_kwargs (dict): Parameters for AntiAliasingLayer
             dropout_rate (float): Dropout probability
             fully_convolutional (bool): Skip final linear layer for dense prediction
@@ -93,7 +91,6 @@ class Gcnn3D(nn.Module):
         self.domain = domain
         self.pooling_type = pooling_type
         self.apply_antialiasing = apply_antialiasing
-        self.canonicalize = canonicalize
         self.antialiasing_kwargs = antialiasing_kwargs
         self.dropout_rate = dropout_rate
         self.dtype = dtype
@@ -111,9 +108,11 @@ class Gcnn3D(nn.Module):
 
         for i in range(num_layers):
             if i == 0:
-                rep = "trivial"
+                rep = "trivial"  # Input representation is always trivial
+                in_features = num_channels[i]  # Use input channels from config
             else:
                 rep = "regular"
+                in_features = num_channels[i]
 
             if subsampling_factors[i] > 1:
                 print("Antialiasing Condition at layer ", i, ": ", self.apply_antialiasing)
@@ -129,7 +128,6 @@ class Gcnn3D(nn.Module):
                     sample_type="sample",
                     apply_antialiasing=self.apply_antialiasing,
                     anti_aliasing_kwargs=self.antialiasing_kwargs,
-                    cannonicalize=self.canonicalize,
                 )
             else:
                 sampling_layer = None
@@ -137,7 +135,7 @@ class Gcnn3D(nn.Module):
             conv = rnConv(
                 in_group_type=self.dwn_group_types[i][0],
                 in_order=current_group_order,
-                in_num_features=num_channels[i],
+                in_num_features=in_features,
                 in_representation=rep,
                 out_group_type=self.dwn_group_types[i][0],
                 out_num_features=num_channels[i + 1],
@@ -243,7 +241,13 @@ class Gcnn3D(nn.Module):
             # Create linear layer on first forward pass if not created yet
             if self.linear_layer is None:
                 actual_features = x.shape[1]
-                self.linear_layer = nn.Linear(actual_features, self.num_classes, dtype=self.dtype, device=self.device)
+                # Create linear layer on the same device as input tensor
+                device = x.device
+                self.linear_layer = nn.Linear(actual_features, self.num_classes, dtype=self.dtype, device=device)
+            else:
+                # Ensure linear layer is on the same device as input
+                if self.linear_layer.weight.device != x.device:
+                    self.linear_layer = self.linear_layer.to(x.device)
             x = self.linear_layer(x)
         return x
 
@@ -268,6 +272,9 @@ class Gcnn3D(nn.Module):
         for layer in self.sampling_layers:
             if layer is not None and hasattr(layer, 'to'):
                 layer = layer.to(*args, **kwargs)
+
+        # Also move the model itself using super().to()
+        super().to(*args, **kwargs)
 
         return self
 

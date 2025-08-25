@@ -104,7 +104,6 @@ def get_3d_model(
     domain=3,
     pooling_type="max",
     apply_antialiasing=True,
-    cannonicalize=False,
     dropout_rate=0.0,
     layer_kwargs=None,
     antialiasing_kwargs=None,
@@ -130,7 +129,6 @@ def get_3d_model(
         domain (int): Domain parameter. Must be 3 for 3D models.
         pooling_type (str): Type of pooling to apply. Default is 'max'.
         apply_antialiasing (bool): Whether to apply antialiasing. Default is True.
-        cannonicalize (bool): Whether to canonicalize. Default is False.
         dropout_rate (float): Dropout rate. Default is 0.0.
         layer_kwargs (dict): Additional arguments for layers.
         antialiasing_kwargs (dict): Additional arguments for antialiasing.
@@ -199,6 +197,7 @@ def get_3d_model(
             "equi_correction": False,
         }
 
+    # Add input_channel to num_channels for proper indexing
     num_channels = [input_channel] + num_channels
     model = Gcnn3D(
         num_channels=num_channels,
@@ -212,7 +211,6 @@ def get_3d_model(
         domain=domain,
         pooling_type=pooling_type,
         apply_antialiasing=apply_antialiasing,
-        canonicalize=cannonicalize,
         dropout_rate=dropout_rate,
         layer_kwargs=layer_kwargs,
         antialiasing_kwargs=antialiasing_kwargs,
