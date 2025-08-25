@@ -1,0 +1,180 @@
+# Base Configuration for MedMNIST Training Pipeline
+# ================================================
+# This file contains common hyperparameters and settings that are shared
+# across different experiments and model configurations.
+
+# Data Configuration
+# -----------------
+data:
+  dataset_name: "organmnist3d"  # Default dataset
+  data_dir: "./data"
+  batch_size: 8
+  num_workers: 4
+  pin_memory: true
+  normalize: true
+  norm_method: "minmax"  # minmax, zscore, robust, medmnist_standard
+  augment: true
+  task_type: "auto"
+
+# Model Configuration
+# ------------------
+model:
+  # GCNN Architecture
+  model_type: "gcnn3d"  # Options: gcnn3d, resnet3d, custom
+  num_layers: 3
+  num_channels: [32, 64, 128]  # Channels per layer
+  kernel_sizes: [3, 3, 3]      # Kernel sizes per layer
+  num_classes: 11               # Will be overridden by dataset
+  
+  # Group Configuration
+  group_config:
+    init_group_order: 24        # Octahedral group
+    dwn_group_types: [["octahedral", "octahedral"], ["octahedral", "cycle"]]
+    subsampling_factors: [1, 6]  # Group subsampling ratios
+    spatial_subsampling_factors: [1, 2]  # Spatial stride factors
+  
+  # Anti-aliasing Configuration
+  antialiasing:
+    apply_antialiasing: true
+    smooth_operator: "adjacency"
+    mode: "analytical"
+    iterations: 100
+    smoothness_loss_weight: 1.0
+    threshold: 0.0
+    equi_constraint: true
+    equi_correction: false
+  
+  # Other Model Settings
+  pooling_type: "max"           # max, mean
+  dropout_rate: 0.1
+  fully_convolutional: false
+
+# Training Configuration
+# ---------------------
+training:
+  # Basic Training Settings
+  max_epochs: 100
+  learning_rate: 0.001
+  weight_decay: 1e-5
+  gradient_clip_val: 1.0
+  
+  # Optimizer Configuration
+  optimizer:
+    name: "adam"  # adam, sgd, adamw
+    params:
+      lr: 0.001
+      weight_decay: 1e-5
+      betas: [0.9, 0.999]
+      eps: 1e-8
+  
+  # Scheduler Configuration
+  scheduler:
+    name: "cosine"  # cosine, step, exponential, plateau
+    params:
+      T_max: 100
+      eta_min: 1e-6
+      step_size: 30
+      gamma: 0.1
+  
+  # Loss Configuration
+  loss:
+    name: "cross_entropy"  # cross_entropy, focal, dice
+    params: {}
+  
+  # Early Stopping
+  early_stopping:
+    enabled: true
+    patience: 15
+    min_delta: 0.001
+    monitor: "val_loss"
+    mode: "min"
+
+# Hardware Configuration
+# ---------------------
+hardware:
+  # GPU Settings
+  gpus: -1  # -1 for all available, 0 for single, [0,1] for specific
+  precision: 32  # 16, 32, 64 (mixed precision)
+  accelerator: "gpu"  # gpu, cpu, auto
+  strategy: "auto"  # auto, ddp, ddp_spawn, deepspeed
+  
+  # Memory and Performance
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1.0
+  deterministic: false
+  benchmark: true
+
+# Logging and Monitoring
+# ----------------------
+logging:
+  # Logging Framework
+  logger: "tensorboard"  # tensorboard, wandb, csv
+  log_every_n_steps: 50
+  save_top_k: 3
+  monitor: "val_loss"
+  mode: "min"
+  
+  # Checkpointing
+  save_dir: "./checkpoints"
+  filename: "{epoch:02d}-{val_loss:.3f}"
+  save_last: true
+  
+  # Experiment Tracking
+  project_name: "medmnist_gcnn"
+  experiment_name: "organmnist3d_octahedral"
+  tags: ["3d", "gcnn", "medmnist", "octahedral"]
+
+# Evaluation Configuration
+# -----------------------
+evaluation:
+  # Metrics
+  metrics: ["accuracy", "auc", "f1", "precision", "recall"]
+  
+  # Test Settings
+  test_after_training: true
+  save_predictions: false
+  confusion_matrix: true
+  
+  # Validation
+  val_check_interval: 1.0  # Check validation every N epochs
+  check_val_every_n_epoch: 1
+
+# Test Mode Configuration
+# ----------------------
+test_mode:
+  enabled: false
+  max_samples: 100
+  max_epochs: 5
+  batch_size: 4
+  fast_dev_run: false
+  limit_train_batches: 0.1
+  limit_val_batches: 0.1
+  limit_test_batches: 0.1
+
+# Advanced Configuration
+# ---------------------
+advanced:
+  # Data Augmentation
+  augmentation:
+    rotation_range: 15
+    scale_range: [0.9, 1.1]
+    flip_probability: 0.5
+  
+  # Model Initialization
+  initialization:
+    weight_init: "kaiming"  # kaiming, xavier, normal
+    bias_init: "zeros"
+  
+  # Regularization
+  regularization:
+    dropout: 0.1
+    batch_norm: true
+    layer_norm: false
+  
+  # Debugging
+  debugging:
+    log_grad_norm: false
+    log_learning_rate: true
+    log_memory_usage: false
+    detect_anomaly: false
+

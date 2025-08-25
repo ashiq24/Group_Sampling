@@ -1,0 +1,116 @@
+# Test Mode Configuration for MedMNIST Training Pipeline
+# ====================================================
+# This configuration enables test mode for quick validation of the entire pipeline
+# without running full training. Useful for development and debugging.
+# 
+# LOCATION: tests/ folder - used for pipeline validation testing
+
+# Import base configuration
+imports:
+  - "base_config.yaml"
+
+# Enable test mode
+test_mode:
+  enabled: true
+  max_samples: 50               # Very small dataset for quick testing
+  max_epochs: 3                 # Just a few epochs
+  batch_size: 1                 # Very small batch size for GPU testing
+  fast_dev_run: false           # Keep some validation
+  limit_train_batches: 0.1      # 10% of training data
+  limit_val_batches: 0.1        # 10% of validation data
+  limit_test_batches: 0.1       # 10% of test data
+
+# Override data settings for testing
+data:
+  batch_size: 1                 # Very small batch size for GPU testing
+  num_workers: 1                # Fewer workers for testing
+  normalize: true               # Enable normalization
+  norm_method: "minmax"         # Use simple normalization for testing
+
+
+# GCNN model for testing
+model:
+  model_type: gcnn3d            # Use GCNN3D model for testing
+  num_layers: 2                 # Fewer layers for quick testing
+  num_channels: [1, 16, 32]      # [input_channels, layer1_channels, layer2_channels]
+  kernel_sizes: [3, 3]          # Simple kernels
+  num_classes: 11               # Number of classes
+  
+  # Group configuration for GCNN
+  group_config:
+    init_group_order: 24        # Octahedral group
+    dwn_group_types: [
+      ["octahedral", "octahedral"],  # No downsampling in first layer
+      ["octahedral", "cycle"]        # Simple downsampling in second layer
+    ]
+    subsampling_factors: [1, 6]      # Minimal subsampling
+    spatial_subsampling_factors: [1, 2]  # Minimal spatial subsampling
+  
+  # Anti-aliasing configuration
+  antialiasing:
+    apply_antialiasing: true
+    smooth_operator: "adjacency"
+    mode: "analytical"          # Fast mode
+    iterations: 50              # Fewer iterations for testing
+    smoothness_loss_weight: 1.0
+    threshold: 0.0
+    equi_constraint: true
+    equi_correction: false
+  
+  pooling_type: max             # Simple pooling
+  dropout_rate: 0.1             # Light dropout
+  fully_convolutional: false    # Use linear layer at end
+
+# Fast training for testing
+training:
+  max_epochs: 3                 # Very few epochs
+  learning_rate: 0.001          # Standard learning rate
+  
+  # Simple optimizer
+  optimizer:
+    name: "adam"
+    params:
+      lr: 0.001
+      weight_decay: 1e-5
+  
+  # Simple scheduler
+  scheduler:
+    name: "step"
+    params:
+      step_size: 2
+      gamma: 0.5
+  
+  # Early stopping
+  early_stopping:
+    enabled: false              # Disable for testing
+    patience: 5
+
+# Hardware settings for testing
+hardware:
+  gpus: 1                      # Use 1 GPU for testing
+  precision: 32                # Full precision for testing
+  accelerator: "gpu"
+  strategy: "auto"
+  accumulate_grad_batches: 1
+
+# Simple logging for testing
+logging:
+  logger: "tensorboard"         # Use tensorboard to avoid CSV header issues
+  save_top_k: 1                 # Save only best model
+  save_dir: "./checkpoints/test"
+  filename: "test_{epoch:02d}"
+
+# Basic evaluation for testing
+evaluation:
+  metrics: ["accuracy"]         # Simple metric
+  test_after_training: true
+  save_predictions: false
+  confusion_matrix: false
+
+# Notes for testing
+notes:
+  description: "Test configuration for quick GPU pipeline validation"
+  purpose: "Development and debugging with GPU"
+  expected_runtime: "2-3 minutes (GPU)"
+  validation: "Basic GPU functionality check"
+

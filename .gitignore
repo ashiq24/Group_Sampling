@@ -1,9 +1,8 @@
 # Ignore dataset directory
-data/*
 logs
 .neptune/*
 mnist/*
-
+logs/*
 #ignore legacy code
 old_files/*
 
@@ -42,7 +41,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-
+checkpoints/*
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

@@ -1,0 +1,142 @@
+advanced:
+  augmentation:
+    flip_probability: 0.5
+    rotation_range: 15
+    scale_range:
+    - 0.9
+    - 1.1
+  debugging:
+    detect_anomaly: false
+    log_grad_norm: false
+    log_learning_rate: true
+    log_memory_usage: false
+  initialization:
+    bias_init: zeros
+    weight_init: kaiming
+  regularization:
+    batch_norm: true
+    dropout: 0.1
+    layer_norm: false
+data:
+  augment: true
+  batch_size: 1
+  data_dir: ./data
+  dataset_name: organmnist3d
+  norm_method: minmax
+  normalize: true
+  num_workers: 1
+  pin_memory: true
+  task_type: auto
+evaluation:
+  check_val_every_n_epoch: 1
+  confusion_matrix: false
+  metrics:
+  - accuracy
+  save_predictions: false
+  test_after_training: true
+  val_check_interval: 1.0
+hardware:
+  accelerator: gpu
+  accumulate_grad_batches: 1
+  benchmark: true
+  deterministic: false
+  gpus: 1
+  gradient_clip_val: 1.0
+  precision: 32
+  strategy: auto
+logging:
+  experiment_name: organmnist3d_octahedral
+  filename: test_{epoch:02d}
+  log_every_n_steps: 50
+  logger: tensorboard
+  mode: min
+  monitor: val_loss
+  project_name: medmnist_gcnn
+  save_dir: ./checkpoints/test
+  save_last: true
+  save_top_k: 1
+  tags:
+  - 3d
+  - gcnn
+  - medmnist
+  - octahedral
+model:
+  antialiasing:
+    apply_antialiasing: true
+    equi_constraint: true
+    equi_correction: false
+    iterations: 50
+    mode: analytical
+    smooth_operator: adjacency
+    smoothness_loss_weight: 1.0
+    threshold: 0.0
+  dropout_rate: 0.1
+  fully_convolutional: false
+  group_config:
+    dwn_group_types:
+    - - octahedral
+      - octahedral
+    - - octahedral
+      - cycle
+    init_group_order: 24
+    spatial_subsampling_factors:
+    - 1
+    - 2
+    subsampling_factors:
+    - 1
+    - 6
+  kernel_sizes:
+  - 3
+  - 3
+  model_type: gcnn3d
+  num_channels:
+  - 1
+  - 16
+  - 32
+  num_classes: 11
+  num_layers: 2
+  pooling_type: max
+notes:
+  description: Test configuration for quick GPU pipeline validation
+  expected_runtime: 2-3 minutes (GPU)
+  purpose: Development and debugging with GPU
+  validation: Basic GPU functionality check
+test_mode:
+  batch_size: 1
+  enabled: true
+  fast_dev_run: false
+  limit_test_batches: 0.1
+  limit_train_batches: 0.1
+  limit_val_batches: 0.1
+  max_epochs: 3
+  max_samples: 50
+training:
+  early_stopping:
+    enabled: false
+    min_delta: 0.001
+    mode: min
+    monitor: val_loss
+    patience: 5
+  gradient_clip_val: 1.0
+  learning_rate: 0.001
+  loss:
+    name: cross_entropy
+    params: {}
+  max_epochs: 3
+  optimizer:
+    name: adam
+    params:
+      betas:
+      - 0.9
+      - 0.999
+      eps: 1e-8
+      lr: 0.001
+      weight_decay: 1e-5
+  scheduler:
+    name: step
+    params:
+      T_max: 100
+      eta_min: 1e-6
+      gamma: 0.5
+      step_size: 2
+  weight_decay: 1e-5

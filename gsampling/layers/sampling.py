@@ -57,6 +57,11 @@ class SamplingLayer(nn.Module):
                 x = torch.einsum("fg,bcghw->bcfhw", self.sampling_matrix, x)
                 x = rearrange(x, "b  c g h w -> b (c g) h w")
                 return x
+            elif len(x.shape) == 5:
+                x = rearrange(x, "b (c g) h w d -> b c g h w d", g=len(self.nodes))
+                x = torch.einsum("fg,bcghwd->bcfhwd", self.sampling_matrix, x)
+                x = rearrange(x, "b  c g h w d -> b (c g) h w d")
+                return x
         elif self.type == "pool":
             x = x.unsqueeze(0)
             x = self.pool(x)
@@ -68,8 +73,13 @@ class SamplingLayer(nn.Module):
         if len(x.shape) == 4:
             x = rearrange(x, "b (c g) h w -> b c g h w", g=len(self.subsample_nodes))
             x_upsampled = torch.einsum("fg,bcghw->bcfhw", self.up_sampling_matrix, x)
+        elif len(x.shape) == 5:
+            x = rearrange(x, "b (c g) h w d -> b c g h w d", g=len(self.subsample_nodes))
+            x_upsampled = torch.einsum("fg,bcghwd->bcfhwd", self.up_sampling_matrix, x)
         else:
             x_upsampled = self.up_sampling_matrix @ x
         if len(x.shape) == 5:
             x_upsampled = rearrange(x_upsampled, "b c g h w -> b (c g) h w")
+        elif len(x.shape) == 6:
+            x_upsampled = rearrange(x_upsampled, "b c g h w d -> b (c g) h w d")
         return x_upsampled

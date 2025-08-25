@@ -19,6 +19,8 @@ We present the first **group-equivariant downsampling** layer with built-in anti
 > Reduces feature map dimensions while preserving critical information
 >
 > Outperforms naive subsampling in G-CNNs
+>
+> (26 Aug, 2025)Added support for Octahedral Groups and experiment pipeline for 3d data.
 
 ## 🚀 Key Features
 - Uniform sub-group subsampling for arbitrary finite groups.

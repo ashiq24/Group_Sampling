@@ -31,7 +31,6 @@ class Cannonicalizer(nn.EquivariantModule):
 
         if group == "dihedral":
             assert nodes_num % 2 == 0
-            # print("picking group", group)
             self.gspace = gspaces.flipRot2dOnR2(nodes_num // 2)
             self.feature = nn.FieldType(
                 self.gspace, in_channels * [self.gspace.regular_repr]
@@ -42,26 +41,25 @@ class Cannonicalizer(nn.EquivariantModule):
                 self.gspace, in_channels * [self.gspace.regular_repr]
             )
         else:
-            raise ValueError("Unknown group : ", group)
+            raise ValueError("Unknown group:", group)
 
         self.buffer = None
 
     def coset_rep_r2(self, x):
+        """Compute coset representatives for 2D tensors.
+        
+        Args:
+            x: Input tensor of shape (batch, group * in_channels, h, w)
         """
-        x: (batch, group * in_channels, h, w)
-        """
-        fiber = x[:, : self.nodes_num, :, :]
+        fiber = x[:, :self.nodes_num, :, :]
         fiber = torch.permute(fiber, (0, 2, 3, 1)).reshape(x.shape[0], -1)
         v = torch.argmax(fiber, dim=1)
-        k, _ = torch.max(fiber, dim=1)
 
         v = v % self.nodes_num
-        # print(v)
         if self.group == "dihedral" and self.subgroup == "dihedral":
             v = v % (self.nodes_num // 2)
             v = v % (self.nodes_num // self.sub_nodes_num)
             v = [(0, i) for i in v.tolist()]
-            # print(v)
         elif self.group == "cycle" and self.subgroup == "cycle":
             v = v % (self.nodes_num // self.sub_nodes_num)
             v = v.tolist()
@@ -76,18 +74,18 @@ class Cannonicalizer(nn.EquivariantModule):
         return v
 
     def coset_rep(self, x):
-        """
-        x: ( group )
+        """Compute coset representatives for 1D tensors.
+        
+        Args:
+            x: Input tensor of shape (group,)
         """
         fiber = x
         v = torch.argmax(fiber)
         v = v % self.nodes_num
-        # print(v)
         if self.group == "dihedral" and self.subgroup == "dihedral":
             v = v % (self.nodes_num // 2)
             v = v % (self.nodes_num // self.sub_nodes_num)
             v = (0, v.item())
-            # print(v)
         elif self.group == "cycle" and self.subgroup == "cycle":
             v = v % (self.nodes_num // self.sub_nodes_num)
             v = v.item()
@@ -96,7 +94,6 @@ class Cannonicalizer(nn.EquivariantModule):
             v = v % (self.nodes_num // 2)
             v = v % (self.nodes_num // (self.sub_nodes_num * 2))
             v = (r.item(), v.item())
-            # print(v)
         else:
             raise ValueError("Unknown group or subgroup")
 
@@ -167,5 +164,4 @@ class Cannonicalizer(nn.EquivariantModule):
         else:
             raise ValueError("Unknown mode")
 
-    def evaluate_output_shape(self, input_shape: tuple):
-        pass
+
