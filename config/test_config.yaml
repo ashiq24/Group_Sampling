@@ -26,6 +26,7 @@ data:
   num_workers: 1                # Fewer workers for testing
   normalize: true               # Enable normalization
   norm_method: "minmax"         # Use simple normalization for testing
+  size: 64                      # Use higher resolution for testing
 
 
 # GCNN model for testing

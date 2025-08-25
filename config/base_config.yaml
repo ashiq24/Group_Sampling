@@ -15,6 +15,7 @@ data:
   norm_method: "minmax"  # minmax, zscore, robust, medmnist_standard
   augment: true
   task_type: "auto"
+  size: 28  # Available: 28, 64 (28 is faster, 64 is higher quality)
 
 # Model Configuration
 # ------------------

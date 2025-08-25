@@ -49,42 +49,54 @@ MEDMNIST_3D_DATASETS = {
         'modality': 'CT',
         'task': 'classification',
         'num_classes': 11,
-        'description': 'Abdominal organ classification from CT scans'
+        'description': 'Abdominal organ classification from CT scans',
+        'available_sizes': [28, 64],
+        'default_size': 28
     },
     'nodulemnist3d': {
         'name': 'NoduleMNIST3D',
         'modality': 'CT',
         'task': 'classification',
         'num_classes': 2,
-        'description': 'Lung nodule malignancy detection'
+        'description': 'Lung nodule malignancy detection',
+        'available_sizes': [28, 64],
+        'default_size': 28
     },
     'fracturemnist3d': {
         'name': 'FractureMNIST3D',
         'modality': 'CT',
         'task': 'classification',
         'num_classes': 3,
-        'description': 'Bone fracture classification'
+        'description': 'Bone fracture classification',
+        'available_sizes': [28, 64],
+        'default_size': 28
     },
     'adrenalmnist3d': {
         'name': 'AdrenalMNIST3D',
         'modality': 'CT',
         'task': 'classification',
         'num_classes': 2,
-        'description': 'Adrenal gland abnormality detection'
+        'description': 'Adrenal gland abnormality detection',
+        'available_sizes': [28, 64],
+        'default_size': 28
     },
     'vesselmnist3d': {
         'name': 'VesselMNIST3D',
         'modality': 'MRA',
         'task': 'classification',
         'num_classes': 2,
-        'description': 'Cerebral vessel abnormality detection'
+        'description': 'Cerebral vessel abnormality detection',
+        'available_sizes': [28, 64],
+        'default_size': 28
     },
     'synapsemnist3d': {
         'name': 'SynapseMNIST3D',
         'modality': 'Electron Microscope',
         'task': 'classification',
         'num_classes': 2,
-        'description': 'Neural synapse detection'
+        'description': 'Neural synapse detection',
+        'available_sizes': [28, 64],
+        'default_size': 28
     }
 }
 
@@ -108,7 +120,8 @@ class MedMNIST3DDataset(Dataset):
         task_type: str = 'auto',
         normalize: bool = True,
         norm_method: str = 'minmax',
-        augment: bool = False
+        augment: bool = False,
+        size: Optional[int] = None
     ):
         """
         Initialize MedMNIST 3D dataset.
@@ -139,8 +152,17 @@ class MedMNIST3DDataset(Dataset):
         # Normalization method
         self.norm_method = norm_method
         
-        # Get dataset info
+        # Get dataset info first
         self.dataset_info = MEDMNIST_3D_DATASETS[dataset_name]
+        
+        # Resolution size
+        self.size = size
+        if self.size is None:
+            self.size = self.dataset_info['default_size']
+        
+        # Validate size
+        if self.size not in self.dataset_info['available_sizes']:
+            raise ValueError(f"Size {self.size} not available for {dataset_name}. Available: {self.dataset_info['available_sizes']}")
         self.num_classes = self.dataset_info['num_classes']
         self.modality = self.dataset_info['modality']
         
@@ -153,6 +175,7 @@ class MedMNIST3DDataset(Dataset):
             from medmnist import OrganMNIST3D
             self.medmnist_data = OrganMNIST3D(
                 split=split,
+                size=self.size,
                 download=download,
                 target_transform=target_transform
             )
@@ -160,6 +183,7 @@ class MedMNIST3DDataset(Dataset):
             from medmnist import NoduleMNIST3D
             self.medmnist_data = NoduleMNIST3D(
                 split=split,
+                size=self.size,
                 download=download,
                 target_transform=target_transform
             )
@@ -167,6 +191,7 @@ class MedMNIST3DDataset(Dataset):
             from medmnist import FractureMNIST3D
             self.medmnist_data = FractureMNIST3D(
                 split=split,
+                size=self.size,
                 download=download,
                 target_transform=target_transform
             )
@@ -174,6 +199,7 @@ class MedMNIST3DDataset(Dataset):
             from medmnist import AdrenalMNIST3D
             self.medmnist_data = AdrenalMNIST3D(
                 split=split,
+                size=self.size,
                 download=download,
                 target_transform=target_transform
             )
@@ -181,6 +207,7 @@ class MedMNIST3DDataset(Dataset):
             from medmnist import VesselMNIST3D
             self.medmnist_data = VesselMNIST3D(
                 split=split,
+                size=self.size,
                 download=download,
                 target_transform=target_transform
             )
@@ -188,6 +215,7 @@ class MedMNIST3DDataset(Dataset):
             from medmnist import SynapseMNIST3D
             self.medmnist_data = SynapseMNIST3D(
                 split=split,
+                size=self.size,
                 download=download,
                 target_transform=target_transform
             )
@@ -210,6 +238,7 @@ class MedMNIST3DDataset(Dataset):
         
         print(f"Loaded {self.dataset_name} ({self.split} split):")
         print(f"  - Samples: {len(self.medmnist_data)}")
+        print(f"  - Resolution: {self.size}x{self.size}x{self.size}")
         print(f"  - Input shape: {self.medmnist_data.imgs.shape}")
         print(f"  - Labels shape: {self.medmnist_data.labels.shape}")
         print(f"  - Task: {self.task_type}")
@@ -364,7 +393,7 @@ class MedMNIST3DDataset(Dataset):
     
     def _validate_data(self):
         """Validate that the loaded data has expected properties."""
-        expected_shape = (len(self.medmnist_data), 28, 28, 28)
+        expected_shape = (len(self.medmnist_data), self.size, self.size, self.size)
         if self.medmnist_data.imgs.shape != expected_shape:
             raise ValueError(f"Expected shape {expected_shape}, got {self.medmnist_data.imgs.shape}")
         
@@ -405,7 +434,7 @@ class MedMNIST3DDataset(Dataset):
     
     def get_sample_shape(self) -> Tuple[int, ...]:
         """Get the shape of a single sample."""
-        return (self.n_channels, 28, 28, 28)
+        return (self.n_channels, self.size, self.size, self.size)
     
     def get_class_names(self) -> List[str]:
         """Get class names if available."""
@@ -433,6 +462,7 @@ class MedMNIST3DDataModule(LightningDataModule):
         norm_method: str = 'minmax',
         augment: bool = True,
         task_type: str = 'auto',
+        size: Optional[int] = None,
         **kwargs
     ):
         """
@@ -458,6 +488,7 @@ class MedMNIST3DDataModule(LightningDataModule):
         self.norm_method = norm_method
         self.augment = augment
         self.task_type = task_type
+        self.size = size
         self.kwargs = kwargs
         
         # Dataset info
@@ -473,13 +504,14 @@ class MedMNIST3DDataModule(LightningDataModule):
         print(f"Initialized MedMNIST 3D DataModule:")
         print(f"  - Dataset: {dataset_name}")
         print(f"  - Batch size: {batch_size}")
+        print(f"  - Resolution: {self.size}x{self.size}x{self.size}")
         print(f"  - Input shape: {self.input_shape}")
         print(f"  - Classes: {self.num_classes}")
         print(f"  - Normalization: {norm_method}")
     
     def _get_input_shape(self) -> Tuple[int, ...]:
         """Get the input shape for the model."""
-        return (self.dataset_info.get('n_channels', 1), 28, 28, 28)
+        return (self.dataset_info.get('n_channels', 1), self.size, self.size, self.size)
     
     def prepare_data(self):
         """Download and prepare data if needed."""
@@ -511,6 +543,7 @@ class MedMNIST3DDataModule(LightningDataModule):
                 norm_method=self.norm_method,
                 augment=self.augment,
                 task_type=self.task_type,
+                size=self.size,
                 **self.kwargs
             )
             
@@ -522,6 +555,7 @@ class MedMNIST3DDataModule(LightningDataModule):
                 norm_method=self.norm_method,
                 augment=False,  # No augmentation for validation
                 task_type=self.task_type,
+                size=self.size,
                 **self.kwargs
             )
         
@@ -534,6 +568,7 @@ class MedMNIST3DDataModule(LightningDataModule):
                 norm_method=self.norm_method,
                 augment=False,  # No augmentation for testing
                 task_type=self.task_type,
+                size=self.size,
                 **self.kwargs
             )
     
@@ -587,6 +622,7 @@ def create_medmnist_dataloader(
     split: str = 'train',
     batch_size: int = 8,
     num_workers: int = 4,
+    size: Optional[int] = None,
     **kwargs
 ) -> DataLoader:
     """
@@ -605,6 +641,7 @@ def create_medmnist_dataloader(
     dataset = MedMNIST3DDataset(
         dataset_name=dataset_name,
         split=split,
+        size=size,
         **kwargs
     )
     

@@ -605,7 +605,8 @@ def create_dataloader_from_config(config: Dict[str, Any]) -> MedMNIST3DDataModul
         normalize=data_config.get('normalize', True),
         norm_method=data_config.get('norm_method', 'minmax'),
         augment=data_config.get('augment', True),
-        task_type=data_config.get('task_type', 'auto')
+        task_type=data_config.get('task_type', 'auto'),
+        size=data_config.get('size', 28)
     )
 
 
@@ -616,7 +617,7 @@ if __name__ == "__main__":
     try:
         # Test data augmentation
         aug = DataAugmentation3D()
-        test_tensor = torch.randn(1, 28, 28, 28)
+        test_tensor = torch.randn(1, 64, 64, 64)  # Use 64x64x64 for testing
         augmented = aug(test_tensor)
         print(f"✅ Data augmentation: {test_tensor.shape} -> {augmented.shape}")
         

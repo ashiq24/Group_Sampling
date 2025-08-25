@@ -26,6 +26,7 @@ data:
   normalize: true
   num_workers: 1
   pin_memory: true
+  size: 64
   task_type: auto
 evaluation:
   check_val_every_n_epoch: 1

@@ -15,6 +15,7 @@ data:
   normalize: true
   norm_method: "medmnist_standard"  # Use dataset-specific normalization
   augment: true
+  size: 64  # Use higher resolution for better organ classification
  order
 
 # Model configuration optimized for OrganMNIST3D

@@ -420,9 +420,13 @@ class MedMNISTVisualizer:
                 print(f"  - Image: shape={img_shape}, dtype={img_dtype}, range=[{img_min:.3f}, {img_max:.3f}]")
                 print(f"  - Label: shape={label_shape}, dtype={label_dtype}, range=[{label_min:.3f}, {label_max:.3f}]")
                 
-                # Validate shapes
-                if img_shape != (1, 28, 28, 28):
-                    print(f"  ⚠️  Warning: Unexpected image shape {img_shape}")
+                # Validate shapes - check if it's a cubic 3D image
+                if len(img_shape) == 4 and img_shape[1] == img_shape[2] == img_shape[3]:
+                    size = img_shape[1]
+                    if size not in [28, 64]:
+                        print(f"  ⚠️  Warning: Unexpected image size {size}x{size}x{size}")
+                else:
+                    print(f"  ⚠️  Warning: Non-cubic 3D image shape {img_shape}")
                 
                 if label_shape != (self.dataset_info['num_classes'],):
                     print(f"  ⚠️  Warning: Unexpected label shape {label_shape}")
