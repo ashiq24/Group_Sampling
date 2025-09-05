@@ -82,8 +82,18 @@ class SubgroupDownsample(nn.Module):
                 sub_order = self.G.order() // subsampling_factor
             else:
                 # For cross-group subsampling (e.g., full_octahedral -> octahedral)
-                sub_group_G = get_group(self.sub_group_type)
-                sub_order = sub_group_G.order() // max(subsampling_factor, 1)
+                # For 3D groups, we need to handle them specially since they don't take order
+                if self.sub_group_type in ["octahedral", "full_octahedral", "icosahedral"]:
+                    sub_group_G = get_group(self.sub_group_type, 1)  # Use dummy order for 3D groups
+                else:
+                    # For 2D groups, calculate appropriate order
+                    if self.sub_group_type in ["cycle", "cyclic"]:
+                        # For cyclic groups, use a reasonable order based on subsampling
+                        sub_order = max(4, 24 // max(subsampling_factor, 1))  # Minimum order 4
+                        sub_group_G = get_group(self.sub_group_type, sub_order)
+                    else:
+                        sub_group_G = get_group(self.sub_group_type, None)
+                sub_order = max(1, sub_group_G.order() // max(subsampling_factor, 1))
         else:
             # Original logic for 2D groups
             sub_order = (
@@ -93,7 +103,11 @@ class SubgroupDownsample(nn.Module):
             )
         
         self.sub_order = sub_order
-        self.G_sub = get_group(self.sub_group_type, sub_order if self.sub_group_type not in ["octahedral", "full_octahedral"] else None)
+        # Ensure sub_order is at least 1 for all groups
+        if self.sub_group_type in ["octahedral", "full_octahedral", "icosahedral"]:
+            self.G_sub = get_group(self.sub_group_type, 1)  # 3D groups don't use order
+        else:
+            self.G_sub = get_group(self.sub_group_type, max(1, sub_order))  # Ensure minimum order 1
 
         # Initialize graph constructor
         self.graphs = GraphConstructor(
@@ -116,6 +130,8 @@ class SubgroupDownsample(nn.Module):
         # Initialize anti-aliasing layer if applicable
         if apply_antialiasing:
             print("Initializing anti-aliasing layer")
+            # Filter out apply_antialiasing from kwargs
+            filtered_kwargs = {k: v for k, v in self.anti_aliasing_kwargs.items() if k != 'apply_antialiasing'}
             self.anti_aliaser = AntiAliasingLayer(
                 nodes=self.graphs.graph.nodes,
                 adjaceny_matrix=self.graphs.graph.adjacency_matrix,
@@ -126,7 +142,7 @@ class SubgroupDownsample(nn.Module):
                 dtype=self.dtype,
                 device=self.device,
                 raynold_op=self.graphs.graph.equi_raynold_op,
-                **self.anti_aliasing_kwargs
+                **filtered_kwargs
             )
             self.anti_aliaser.to(device=self.device, dtype=self.dtype)
         else:

@@ -47,8 +47,8 @@ except ImportError as e:
 
 # Import GSampling models (only import, don't modify)
 try:
-    from gsampling.models.g_cnn_3d import Gcnn3D
-    from gsampling.models.model_handler import get_3d_model
+    from models.g_cnn_3d import Gcnn3D
+    from models.model_handler import get_3d_model
     GCNN_AVAILABLE = True
 except ImportError as e:
     GCNN_AVAILABLE = False
@@ -563,15 +563,20 @@ def main():
                 state_dict = checkpoint['state_dict']
                 cleaned_state_dict = {}
                 
-                # Skip problematic layers that have shared weights
-                problematic_keys = [
-                    'model.spatial_sampling_layers.1.blur.weight',
-                    'model.sampling_layers.1.sample.sampling_matrix',
-                    'model.sampling_layers.1.sample.up_sampling_matrix'
+                # Skip problematic layers that have shared weights (pattern-based)
+                problematic_patterns = [
+                    'anti_aliaser',           # All anti-aliasing layers
+                    'sample.sampling_matrix', # All sampling matrices
+                    'sample.up_sampling_matrix', # All upsampling matrices
+                    'blur.weight',           # All blur pool weights
                 ]
                 
+                def is_problematic_key(key: str) -> bool:
+                    """Check if a key matches any problematic pattern."""
+                    return any(pattern in key for pattern in problematic_patterns)
+                
                 for key, value in state_dict.items():
-                    if key in problematic_keys:
+                    if is_problematic_key(key):
                         print(f"⚠️  Skipping problematic layer: {key}")
                         continue
                     elif isinstance(value, torch.Tensor):

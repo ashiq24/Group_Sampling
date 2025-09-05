@@ -1,5 +1,5 @@
-from gsampling.models.g_cnn import Gcnn
-from gsampling.models.g_cnn_3d import Gcnn3D
+from .g_cnn import Gcnn
+from .g_cnn_3d import Gcnn3D
 
 
 def get_model(

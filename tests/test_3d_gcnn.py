@@ -6,8 +6,8 @@ from tests.conftest import device_real_dtype_parametrize, tolerance_config
 # Import the modules under test
 try:
     from escnn.group import *
-    from gsampling.models.g_cnn_3d import Gcnn3D
-    from gsampling.models.model_handler import get_3d_model
+    from models.g_cnn_3d import Gcnn3D
+    from models.model_handler import get_3d_model
     from gsampling.utils.group_utils import *
 except ImportError as e:
     pytest.skip(f"Cannot import required modules: {e}", allow_module_level=True)

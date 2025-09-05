@@ -14,7 +14,7 @@ The demo shows:
 
 import torch
 import numpy as np
-from gsampling.models.model_handler import get_3d_model
+from models.model_handler import get_3d_model
 
 
 def demo_octahedral_gcnn():

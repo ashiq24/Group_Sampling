@@ -1,4 +1,4 @@
-from gsampling.models.model_handler import get_model
+from models.model_handler import get_model
 import torch
 import pytest
 

@@ -71,7 +71,7 @@ print("Output shape:", out.shape)
 
 2. Whole Model Integration
 ```python
-from gsampling.models.model_handler import get_model
+from models.model_handler import get_model
 # Configure hierarchical group-equivariant architecture
 model = get_model(
     input_channel=3,  # RGB input channels

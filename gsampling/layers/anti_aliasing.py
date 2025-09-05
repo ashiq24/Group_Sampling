@@ -124,8 +124,8 @@ class AntiAliasingLayer(torch.nn.Module):
 
         self.register_buffer(
             "up_sampling_basis",
-            (self.basis * self.basis.shape[0] ** 0.5 @ self.M).to(self.dtype)
-            / self.sub_basis.shape[0] ** 0.5,
+            ((self.basis.to(self.M.dtype) * self.basis.shape[0] ** 0.5) @ self.M
+            / self.sub_basis.shape[0] ** 0.5).T,
         )
 
         if equi_correction:
@@ -283,150 +283,25 @@ class AntiAliasingLayer(torch.nn.Module):
         smoothness_loss_weight=0.01,
         mode="optim",
     ):
-        if mode == "analytical":
-            print("===Using Analytical Solution====")
-            """
-            used analytical solution to solve the optimization problem
-            """
-            M = (
-                torch.linalg.pinv(
-                    self.sampling_matrix.to(self.basis.dtype) @ self.basis
-                )
-                @ self.sub_basis
-            )
-
-            return M
-
-        elif mode == "linear_optim":
-            """
-            used alternating lease square programming to solve the optimization problem
-            """
-
-            print("===Using Linear Optimization====")
-            # setting high precision dtype for optimization
-            high_precision_dtype = None
-            if self.dtype == torch.cfloat:
-                high_precision_dtype = torch.cfloat64
-            elif self.dtype == torch.float:
-                high_precision_dtype = torch.float64
-
-            F = (
-                self.sub_basis.clone().to(device, dtype=high_precision_dtype).numpy()
-                * self.sub_basis.shape[0] ** 0.5
-            )
-
-            FB = (
-                self.basis.clone().to(device, dtype=high_precision_dtype).numpy()
-                * self.basis.shape[0] ** 0.5
-            )
-
-            S = (
-                self.sampling_matrix.clone()
-                .to(device, dtype=high_precision_dtype)
-                .numpy()
-            )
-            L = self.smoother.to(device, dtype=high_precision_dtype).numpy()
-            if self.equi_constraint:
-                R = (
-                    self.equi_raynold_op.clone()
-                    .to(device, dtype=high_precision_dtype)
-                    .numpy()
-                )
-            else:
-                R = None
-            M = torch.zeros(
-                (S.shape[1], F.shape[1]), dtype=high_precision_dtype, device=device
-            ).numpy()
-
-            F0 = np.zeros_like(F) + 1e-7  # tolerance for linear constraint
-
-            def smoothness_ob1(M, FB, L):
-                """
-                Objective function to minimize: \sum |FB - L * FB|_2 x M
-                """
-
-                M = M.reshape(FB.shape[1], F.shape[1])
-                shift_f = np.dot(L, FB)
-                shift_err = np.diag(FB.T @ (FB - shift_f))
-                shift_err = shift_err.reshape(-1, M.shape[0])
-
-                return smoothness_loss_weight * np.mean(shift_err @ np.abs(M))
-
-            def objective_function4(M, FB, L, R):
-                """
-                Objective function to minimize: |FB - L * FB . M|_2 + |R . L1 - L1|_2
-                """
-                smoothness_loss = smoothness_ob1(M, FB, L)
-
-                M = M.reshape(FB.shape[1], F.shape[1])
-                equi_error = equivarinace_loss(M, R)
-
-                return smoothness_loss + 1 * equi_error
-
-            def equivarinace_loss(M, R):
-                """
-                Objective function to minimize: |R . L1 - L1|_2
-
-                Assumes M is already shaped into 2D (group_size, feature_size).
-                """
-                # Get L1 projector as 2D matrix (group_size, group_size)
-                L1_matrix = self.l1_projector(M)  # Shape: (group_size, group_size)
-                
-                # Apply Reynolds operator to each column of L1 (each feature)
-                # R operates on the group dimension (first dimension)
-                RL1 = R @ L1_matrix  # Shape: (group_size, group_size)
-                error_matrix = RL1 - L1_matrix
-                
-                return np.linalg.norm(error_matrix, ord='fro')  # Frobenius norm
-
-            initial_guess_M = np.random.randn(*M.shape).flatten()
-
-            print("Initial guess M:", initial_guess_M.shape)
-
-            # Define the linear equality constraint
-            linear_constraint_matrix = np.kron(S @ FB, np.eye(F.shape[1]))
-            print("Linear Constraint Matrix:", linear_constraint_matrix.shape)
-
-            linear_constraint = LinearConstraint(
-                linear_constraint_matrix, (F - F0).flatten(), (F + F0).flatten()
-            )
-
-            # Set bounds to enforce strict equality constraint
-            bounds = [(None, None)] * (FB.shape[1] * F.shape[1])
-
-            print("*** starting optimization ***")
-            if self.equi_constraint:
-                result = minimize(
-                    objective_function4,
-                    initial_guess_M,
-                    args=(FB, L, R),
-                    constraints=[linear_constraint],
-                    bounds=bounds,
-                    options={"maxiter": iterations, "disp": True},
-                )
-            else:
-                result = minimize(
-                    smoothness_ob1,
-                    initial_guess_M,
-                    args=(FB, L),
-                    constraints=[linear_constraint],
-                    bounds=bounds,
-                    options={"maxiter": iterations, "disp": True},
-                )
-            print("*** optimization done ***")
-
-            optimal_M = result.x
-
-            print("Optimal objective value:", result.fun)
-
-            M = optimal_M.reshape(FB.shape[1], F.shape[1])
-
-            print(" Final Loss Reconstruction :", np.linalg.norm(F - S @ FB @ M))
-            print(" Final Equivarinace loss :", equivarinace_loss(M, R))
-
-            return torch.tensor(M, dtype=torch.float64)
-        else:
-            raise ValueError("Invalid mode: ", mode)
+        # Import the solver function
+        from gsampling.layers.solvers import solve_M
+        
+        # Use the unified solver that supports all modes including gpu_optim
+        M = solve_M(
+            mode=mode,
+            iterations=iterations,
+            device=device,
+            smoothness_loss_weight=smoothness_loss_weight,
+            sampling_matrix=self.sampling_matrix,
+            basis=self.basis,
+            sub_basis=self.sub_basis,
+            smoother=self.smoother,
+            dtype=self.dtype,
+            equi_constraint=self.equi_constraint,
+            equi_raynold_op=self.equi_raynold_op if hasattr(self, 'equi_raynold_op') else None,
+        )
+        
+        return M
 
     def _forward_f_transform(self, x, basis):
         """Graph Fourier Transform: Projects spatial signals to spectral domain.
@@ -454,14 +329,8 @@ class AntiAliasingLayer(torch.nn.Module):
             x_reshaped = x.view(batch, channel, group_size, height, width)
             return torch.einsum("fg,bcghw->bcfhw", B, x_reshaped.to(basis.dtype))
         elif len(x.shape) == 5:
-            # Handle 3D spatial data: (batch, channel, group_size, height, width) or 
-            # (batch, group_size, channel, depth, height, width) depending on convention
-            if x.shape[2] == len(self.nodes):
-                # Convention: (batch, channel, group_size, height, width)
-                return torch.einsum("fg,bcghw->bcfhw", B, x.to(basis.dtype))
-            else:
-                # Convention: (batch, group_size, channel, depth, height, width)
-                return torch.einsum("fg,bcgdhw->bcfdhw", B, x.to(basis.dtype))
+            # Handle 2D spatial data: (batch, channel, group_size, height, width)
+            return torch.einsum("fg,bcghw->bcfhw", B, x.to(basis.dtype))
         elif len(x.shape) == 6:
             # Handle 3D spatial data: (batch, channel, group_size, depth, height, width)
             return torch.einsum("fg,bcgdhw->bcfdhw", B, x.to(basis.dtype))
@@ -474,19 +343,19 @@ class AntiAliasingLayer(torch.nn.Module):
         Inverse Transform: x = BX̂
         """
         if len(x.shape) == 1:
-            return torch.matmul(basis, x)
+            # Check if this is upsampling (basis has more rows than columns)
+            if basis.shape[0] < basis.shape[1]:
+                # Upsampling case: x @ basis where basis is (input_size, output_size)
+                return torch.matmul(x.to(basis.dtype), basis)
+            else:
+                # Regular case: basis @ x where basis is (output_size, input_size)
+                return torch.matmul(basis, x.to(basis.dtype))
         elif len(x.shape) == 4:
             # Handle 2D spatial data
             return torch.einsum("fg,bcfhw->bcghw", basis, x.to(basis.dtype))
         elif len(x.shape) == 5:
-            # Handle 3D spatial data: (batch, channel, group_size, height, width) or 
-            # (batch, group_size, channel, depth, height, width)
-            if x.shape[2] == len(self.nodes):
-                # Convention: (batch, channel, group_size, height, width)
-                return torch.einsum("fg,bcfhw->bcghw", basis, x.to(basis.dtype))
-            else:
-                # Convention: (batch, group_size, channel, depth, height, width)
-                return torch.einsum("fg,bcfdhw->bcgdhw", basis, x.to(basis.dtype))
+            # Handle 2D spatial data: (batch, channel, group_size, height, width)
+            return torch.einsum("fg,bcfhw->bcghw", basis, x.to(basis.dtype))
         elif len(x.shape) == 6:
             # Handle 3D spatial data: (batch, channel, group_size, depth, height, width)
             return torch.einsum("fg,bcfdhw->bcgdhw", basis, x.to(basis.dtype))
