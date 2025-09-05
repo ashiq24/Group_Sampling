@@ -5,7 +5,7 @@ mnist/*
 logs/*
 #ignore legacy code
 old_files/*
-
+baselines/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

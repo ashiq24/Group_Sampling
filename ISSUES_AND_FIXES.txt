@@ -1,0 +1,65 @@
+Summary of findings, potential bugs, and concrete fixes (concise).
+
+1) Tensor copying and autograd warnings
+- Issue: torch.tensor(tensor) used for tensors from model/data causing aliasing/autograd warnings.
+- Fix: use tensor.clone().detach() when storing static copies.
+
+2) Unsafe matrix inverse / singularity checks
+- Issue: torch.inverse and det-based checks on possibly singular/ill-conditioned matrices.
+- Fix: use torch.linalg.cond, torch.linalg.slogdet or torch.linalg.pinv and torch.linalg.solve. Fall back to pinv when cond is large.
+
+3) Eigenvalue/eigenvector checks on complex/Hermitian matrices
+- Issue: numeric imaginary noise and inappropriate eigen routines.
+- Fix: use torch.linalg.eigh for Hermitian when possible, scale tolerances by norm and dtype.
+
+4) Fragile tests and fixed tolerances
+- Issue: tests use absolute tolerances too strict and exact equality checks.
+- Fix: centralize tolerances in tests/conftest.py, use pytest.approx or torch.allclose with rtol/atol based on dtype/device.
+
+5) Metric computation correctness
+- Issue: false negatives/positives counting may be wrong.
+- Fix: compute tp/fp/fn with masks: tp = sum((pred==i) & (gt==i)), fp = sum((pred==i) & (gt!=i)), fn = sum((pred!=i) & (gt==i)). Guard divisions.
+
+6) Replace torch.inverse in code/tests
+- Recommendation: replace with solve/pinv and add conditioning checks. Emit warnings when cond > 1e8.
+
+7) setup.py robustness
+- Issue: reading files without encoding and fragile requirements parsing.
+- Fix: use pathlib, read_text(encoding='utf-8'), filter commented lines in requirements.
+
+8) .gitignore cleanup
+- Issue: duplicate entries (e.g., .ropeproject, /site, mypy entries) and mixed patterns.
+- Fix: remove duplicates, prefer canonical patterns (e.g., logs/ and not both logs and logs/*).
+
+9) Notebook training loop issues
+- Issue: scheduler.step() placement and potential divide-by-zero in printing metrics.
+- Fix: call scheduler.step() according to scheduler type and guard prints when totals are zero.
+
+Concrete code examples (apply where appropriate):
+
+- Clone/detach
+    sampling_matrix = sampling_matrix.clone().detach()
+
+- Stable inverse/pinv
+    if torch.isfinite(torch.linalg.cond(A)) and torch.linalg.cond(A) < 1e12:
+        invA = torch.linalg.inv(A)
+    else:
+        invA = torch.linalg.pinv(A)
+
+- Metric masks
+    gt_mask = (targets == i)
+    pred_mask = (preds == i)
+    tp = (pred_mask & gt_mask).sum().item()
+    fp = (pred_mask & ~gt_mask).sum().item()
+    fn = (~pred_mask & gt_mask).sum().item()
+
+Testing and CI recommendations
+- Parametrize tests over dtype/device (cpu/cuda) with dtype-aware tolerances.
+- Add numerical-stability unit tests that intentionally use ill-conditioned matrices and check fallback paths.
+- Log warnings for high condition numbers rather than failing silently.
+
+Next steps I can prepare:
+- PR-style patches for sampling layer, tests/helpers.py, core graph validation, train_utils.py, setup.py, and .gitignore.
+- Run tests and produce prioritized failure list.
+
+End of file.
