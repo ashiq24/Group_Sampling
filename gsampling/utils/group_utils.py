@@ -132,26 +132,29 @@ GroupRegistry.register("full_octahedral", {
     "description": "Full octahedral group O_h (48 elements with inversion)"
 })
 
-GroupRegistry.register("icosahedral", {
-    "escnn_func": lambda order: ico_group(),  # Icosahedral group doesn't take order parameter
-    "gspace_func": lambda order: gspaces.icoOnR3(),
-    "dimension": 3,
-    "description": "Icosahedral group I (60 elements: rotational symmetries of icosahedron)"
-})
-
-GroupRegistry.register("full_icosahedral", {
-    "escnn_func": lambda order: full_ico_group(),  # Full icosahedral group doesn't take order parameter
-    "gspace_func": lambda order: gspaces.fullIcoOnR3(),
-    "dimension": 3,
-    "description": "Full icosahedral group I_h (120 elements with inversion)"
-})
-
-GroupRegistry.register("so3", {
-    "escnn_func": lambda order: so3_group(maximum_frequency=order),  # SO3 uses maximum_frequency parameter
-    "gspace_func": lambda order: gspaces.rot3dOnR3(maximum_frequency=order),
-    "dimension": 3,
-    "description": "Special orthogonal group SO(3) (continuous 3D rotations)"
-})
+# NOTE: Icosahedral and SO(3) groups are available in ESCNN but not yet implemented
+# in our graph constructors. Uncomment and implement when needed:
+#
+# GroupRegistry.register("icosahedral", {
+#     "escnn_func": lambda order: ico_group(),
+#     "gspace_func": lambda order: gspaces.icoOnR3(),
+#     "dimension": 3,
+#     "description": "Icosahedral group I (60 elements: rotational symmetries of icosahedron)"
+# })
+#
+# GroupRegistry.register("full_icosahedral", {
+#     "escnn_func": lambda order: full_ico_group(),
+#     "gspace_func": lambda order: gspaces.fullIcoOnR3(),
+#     "dimension": 3,
+#     "description": "Full icosahedral group I_h (120 elements with inversion)"
+# })
+#
+# GroupRegistry.register("so3", {
+#     "escnn_func": lambda order: so3_group(maximum_frequency=order),
+#     "gspace_func": lambda order: gspaces.rot3dOnR3(maximum_frequency=order),
+#     "dimension": 3,
+#     "description": "Special orthogonal group SO(3) (continuous 3D rotations)"
+# })
 
 
 # ========================= Public API Functions =========================

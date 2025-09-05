@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from gsampling.layers.rnconv import *
-from gsampling.thirdparty.blurpool2d import BlurPool2d
 from gsampling.layers.downsampling import *
 from gsampling.utils.group_utils import *
 from einops import rearrange

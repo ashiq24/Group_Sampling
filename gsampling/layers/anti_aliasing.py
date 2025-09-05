@@ -1,7 +1,4 @@
 import torch
-from torch.optim import Adam, SGD
-import matplotlib.pyplot as plt
-from scipy.optimize import minimize, LinearConstraint, NonlinearConstraint
 import numpy as np
 from einops import rearrange
 
@@ -424,11 +421,6 @@ class AntiAliasingLayer(torch.nn.Module):
                 
         return x_out
 
-    def apply_subsample_matrix(self, x):
-        """
-        Applies subsampling matrix to input signals.
-        """
-        return self.sampling_matrix @ x
 
     def up_sample(self, x):
         """Upsamples subsampled signals through spectral mapping with energy preservation.

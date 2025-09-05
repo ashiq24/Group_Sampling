@@ -22,7 +22,6 @@ class Gcnn(nn.Module):
         domain,
         pooling_type,
         apply_antialiasing,
-        canonicalize,
         antialiasing_kwargs,
         dropout_rate,
         fully_convolutional=False,
@@ -48,7 +47,6 @@ class Gcnn(nn.Module):
             domain (int): Input dimension (2 for images)
             pooling_type (str): Final pooling method ('max' or 'mean')
             apply_antialiasing (bool): Enable spectral anti-aliasing in group subsampling
-            canonicalize (bool): Standardize group element ordering
             antialiasing_kwargs (dict): Parameters for AntiAliasingLayer
             dropout_rate (float): Dropout probability
             fully_convolutional (bool): Skip final linear layer for dense prediction
@@ -90,7 +88,6 @@ class Gcnn(nn.Module):
         self.domain = domain
         self.pooling_type = pooling_type
         self.apply_antialiasing = apply_antialiasing
-        self.canonicalize = canonicalize
         self.antialiasing_kwargs = antialiasing_kwargs
         self.dropout_rate = dropout_rate
         self.fully_convolutional = fully_convolutional
@@ -119,7 +116,6 @@ class Gcnn(nn.Module):
                     sample_type="sample",
                     apply_antialiasing=self.apply_antialiasing,
                     anti_aliasing_kwargs=self.antialiasing_kwargs,
-                    cannonicalize=self.canonicalize,
                 )
             else:
                 sampling_layer = None

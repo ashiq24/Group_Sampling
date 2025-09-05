@@ -83,7 +83,7 @@ class SubgroupDownsample(nn.Module):
             else:
                 # For cross-group subsampling (e.g., full_octahedral -> octahedral)
                 # For 3D groups, we need to handle them specially since they don't take order
-                if self.sub_group_type in ["octahedral", "full_octahedral", "icosahedral"]:
+                if self.sub_group_type in ["octahedral", "full_octahedral"]:
                     sub_group_G = get_group(self.sub_group_type, 1)  # Use dummy order for 3D groups
                 else:
                     # For 2D groups, calculate appropriate order
@@ -104,7 +104,7 @@ class SubgroupDownsample(nn.Module):
         
         self.sub_order = sub_order
         # Ensure sub_order is at least 1 for all groups
-        if self.sub_group_type in ["octahedral", "full_octahedral", "icosahedral"]:
+        if self.sub_group_type in ["octahedral", "full_octahedral"]:
             self.G_sub = get_group(self.sub_group_type, 1)  # 3D groups don't use order
         else:
             self.G_sub = get_group(self.sub_group_type, max(1, sub_order))  # Ensure minimum order 1
