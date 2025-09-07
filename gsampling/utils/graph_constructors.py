@@ -2,6 +2,7 @@ import numpy as np
 from escnn.group import dihedral_group, cyclic_group, directsum
 
 from ..core.graphs.factory import GroupGraphFactory
+from ..core.subsampling import subsample_with_strategy
 
 # Import the new graph implementations from core/graphs/
 from ..core.graphs.dihedral import DihedralGraph
@@ -38,9 +39,48 @@ class GraphConstructor:
         # Create nodes for the original group
         self.nodes = list(range(group_size))
 
-        # Calculate subgroup size
-        self.subgroup_size = group_size // subsampling_factor
-        subsampled_nodes = list(range(self.subgroup_size))
+        # ========================================================================
+        # SUBGROUP SIZE CALCULATION USING PROPER SUBSAMPLING STRATEGIES
+        # ========================================================================
+        # This section uses the proper subsampling strategies to identify the correct
+        # subgroup elements based on the mathematical structure of the groups.
+        #
+        # Mathematical Foundation:
+        # - Main group G has |G| = group_size elements
+        # - Subgroup H has |H| = subgroup_size elements  
+        # - For 3D rotations: Octahedral (24) → C4 (4) for 90° rotations around z-axis
+        # - For 2D rotations: Cyclic groups with appropriate order based on application
+        #
+        # Channel Reduction Formula:
+        # Input channels:  C * |G|  (C features × |G| group elements)
+        # Output channels: C * |H|  (C features × |H| subgroup elements)
+        # Reduction factor: |G| / |H| = k
+        
+        # Use proper subsampling strategies to get the correct subgroup elements
+        try:
+            # This will use the registered strategies (e.g., OctahedralToCycleStrategy)
+            # which correctly identify C4 subgroups for 90° rotations around z-axis
+            subsampled_nodes = subsample_with_strategy(
+                group_size=group_size,
+                group_type=group_type,
+                group_generator=group_generator,
+                subgroup_type=subgroup_type,
+                subsampling_factor=subsampling_factor,
+            )
+            self.subgroup_size = len(subsampled_nodes)
+        except Exception as e:
+            # Fallback to simple division if no strategy is registered
+            print(f"Warning: No subsampling strategy found for {group_type}→{subgroup_type}, using simple division: {e}")
+            if subgroup_type in ["cycle", "cyclic"]:
+                # For cyclic groups, use the correct order based on application
+                # For 90° rotations around z-axis, we want C4 (order 4)
+                self.subgroup_size = group_size // subsampling_factor
+                # Only enforce minimum order for general applications, not specific 3D rotation
+                if group_type not in ["octahedral", "full_octahedral"]:
+                    self.subgroup_size = max(6, self.subgroup_size)
+            else:
+                self.subgroup_size = group_size // subsampling_factor
+            subsampled_nodes = list(range(self.subgroup_size))
 
         # Use factory to create original group graph
         self.graph = GroupGraphFactory.create(group_type, self.nodes, group_generator)

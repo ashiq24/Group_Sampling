@@ -75,27 +75,77 @@ class SubgroupDownsample(nn.Module):
         # Initialize groups
         self.G = get_group(group_type, order)
         
-        # Handle different group types for subgroup order calculation
+        # ========================================================================
+        # SUBGROUP ORDER CALCULATION
+        # ========================================================================
+        # This section calculates the order of the subgroup H based on the main group G
+        # and the subsampling factor. The subgroup order determines how many channels
+        # we'll have after downsampling: |H| = |G| / subsampling_factor
+        #
+        # Mathematical Foundation:
+        # - Group downsampling maps from L²(G) to L²(H) where H ⊆ G
+        # - Channel reduction: C * |G| → C * |H| 
+        # - For proper group structure, |H| must divide |G|
+        # - The subsampling factor k satisfies: |G| = k * |H|
+        #
+        # Different group types require different handling:
+        # 1. 3D groups (octahedral, full_octahedral): Fixed orders, special handling
+        # 2. 2D groups (cycle, dihedral): Variable orders based on parameters
+        
         if group_type in ["octahedral", "full_octahedral"]:
-            # For octahedral groups, subgroup order depends on the specific subsampling
+            # ====================================================================
+            # 3D GROUP HANDLING (Octahedral Groups)
+            # ====================================================================
+            # 3D groups have fixed orders: octahedral = 24, full_octahedral = 48
+            # They don't take order parameters in their constructors
+            
             if self.sub_group_type == group_type:
+                # Same group type subsampling: G → G (e.g., octahedral → octahedral)
+                # Mathematical: |H| = |G| / k where k is the subsampling factor
                 sub_order = self.G.order() // subsampling_factor
             else:
-                # For cross-group subsampling (e.g., full_octahedral -> octahedral)
-                # For 3D groups, we need to handle them specially since they don't take order
+                # Cross-group subsampling: G → H (e.g., full_octahedral → octahedral)
+                # This is more complex as we're changing group types
+                
                 if self.sub_group_type in ["octahedral", "full_octahedral"]:
+                    # 3D to 3D group transition
+                    # Create the target 3D group to get its order
                     sub_group_G = get_group(self.sub_group_type, 1)  # Use dummy order for 3D groups
+                    # Calculate subgroup order based on subsampling factor
+                    sub_order = sub_group_G.order() // max(subsampling_factor, 1)
                 else:
-                    # For 2D groups, calculate appropriate order
+                    # 3D to 2D group transition (e.g., octahedral → cycle)
+                    # This is the most complex case requiring careful order calculation
+                    
                     if self.sub_group_type in ["cycle", "cyclic"]:
-                        # For cyclic groups, use a reasonable order based on subsampling
-                        sub_order = max(4, 24 // max(subsampling_factor, 1))  # Minimum order 4
+                        # ================================================================
+                        # OCTAHEDRAL TO CYCLIC DOWNSAMPLING
+                        # ================================================================
+                        # Mathematical: We want to map from octahedral (24) to cyclic (6)
+                        # with subsampling factor 6. However, we need to ensure the
+                        # cyclic group has a reasonable order for the application.
+                        #
+                        # Calculation: |H| = |G| / k = 24 / 6 = 4
+                        # But cyclic groups work better with order 6, so we use max(6, 4) = 6
+                        # This ensures we have enough rotational symmetry for the task
+                        
+                        sub_order = 24 // max(subsampling_factor, 1)  # Calculate base order
+                        # Ensure minimum order of 6 for cycle groups to maintain useful symmetry
+                        sub_order = max(6, sub_order)
+                        # Create the cyclic group and get its actual order2
                         sub_group_G = get_group(self.sub_group_type, sub_order)
+                        sub_order = sub_group_G.order()  # Use the actual order of the created group
                     else:
+                        # Other 2D groups (dihedral, etc.)
                         sub_group_G = get_group(self.sub_group_type, None)
-                sub_order = max(1, sub_group_G.order() // max(subsampling_factor, 1))
+                        sub_order = sub_group_G.order() // max(subsampling_factor, 1)
         else:
-            # Original logic for 2D groups
+            # ====================================================================
+            # 2D GROUP HANDLING (Cycle, Dihedral Groups)
+            # ====================================================================
+            # 2D groups have variable orders and simpler subsampling logic
+            # Mathematical: |H| = |G| / k for same group type, |G| / (k/2) for different types
+            
             sub_order = (
                 order // subsampling_factor
                 if group_type == sub_group_type
@@ -130,8 +180,8 @@ class SubgroupDownsample(nn.Module):
         # Initialize anti-aliasing layer if applicable
         if apply_antialiasing:
             print("Initializing anti-aliasing layer")
-            # Filter out apply_antialiasing from kwargs
-            filtered_kwargs = {k: v for k, v in self.anti_aliasing_kwargs.items() if k != 'apply_antialiasing'}
+            # Filter out apply_antialiasing and anti_aliasing_kwargs from kwargs
+            filtered_kwargs = {k: v for k, v in self.anti_aliasing_kwargs.items() if k not in ['apply_antialiasing', 'anti_aliasing_kwargs']}
             self.anti_aliaser = AntiAliasingLayer(
                 nodes=self.graphs.graph.nodes,
                 adjaceny_matrix=self.graphs.graph.adjacency_matrix,

@@ -14,7 +14,8 @@ images/*
 images_bs/*
 # C extensions
 *.so
-
+datasets/*
+test_outputs/*
 # Distribution / packaging
 .Python
 build/

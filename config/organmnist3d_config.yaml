@@ -10,13 +10,12 @@ imports:
 # Override dataset-specific settings
 data:
   dataset_name: "organmnist3d"
-  batch_size: 8  # Optimized for 3D data and GPU memory
+  batch_size: 2  # Reduced for memory constraints with 8 GPUs
   num_workers: 4
   normalize: true
   norm_method: "medmnist_standard"  # Use dataset-specific normalization
   augment: true
-  size: 64  # Use higher resolution for better organ classification
- order
+  size: 28  # Use original resolution to avoid memory issues
 
 # Model configuration optimized for OrganMNIST3D
 model:
@@ -125,8 +124,8 @@ test_mode:
   batch_size: 4
   fast_dev_run: false
   limit_train_batches: 0.2      # 20% of training data
-  limit_val_batches: 0.2        # 20% of validation data
-  limit_test_batches: 0.2       # 20% of test data
+  limit_val_batches: 1.0        # Use all validation data (only 3 batches with 8 GPUs)
+  limit_test_batches: 1.0       # Use all test data
 
 # Advanced medical-specific settings
 advanced:

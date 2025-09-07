@@ -1,78 +1,81 @@
 advanced:
-  augmentation:
+  gradient_accumulation:
+    enabled: false
+    steps: 4
+  initialization:
+    weight_init: kaiming
+  mixed_precision:
+    enabled: true
+    precision: 16
+data:
+  augment: true
+  augmentation_params:
     flip_probability: 0.5
-    rotation_range: 15
+    intensity_scale: 0.1
+    intensity_shift: 0.1
+    noise_std: 0.01
+    rotation_range: 15.0
     scale_range:
     - 0.9
     - 1.1
-  debugging:
-    detect_anomaly: false
-    log_grad_norm: false
-    log_learning_rate: true
-    log_memory_usage: false
-  initialization:
-    bias_init: zeros
-    weight_init: kaiming
-  regularization:
-    batch_norm: true
-    dropout: 0.1
-    layer_norm: false
-data:
-  augment: true
-  batch_size: 1
-  data_dir: ./data
-  dataset_name: organmnist3d
-  norm_method: minmax
+  batch_size: 2
+  crop_size:
+  - 128
+  - 128
+  - 128
+  dataset_name: acdc
+  norm_method: zscore
   normalize: true
-  num_workers: 1
+  num_workers: 8
+  persistent_workers: true
   pin_memory: true
-  size: 64
-  task_type: auto
+  root: ./datasets/acdc
+  spacing:
+  - 1.5
+  - 1.5
+  - 1.5
+  train_val_split: 0.8
+  use_es_ed_only: true
 evaluation:
-  check_val_every_n_epoch: 1
-  confusion_matrix: false
+  confusion_matrix: true
   metrics:
-  - accuracy
-  save_predictions: false
+  - dice
+  - hausdorff95
+  - surface_dice
   test_after_training: true
-  val_check_interval: 1.0
 hardware:
   accelerator: gpu
   accumulate_grad_batches: 1
   benchmark: true
   deterministic: false
-  gpus: 1
+  gpus: auto
   gradient_clip_val: 1.0
-  precision: 32
+  precision: 16
   strategy: auto
 logging:
-  experiment_name: organmnist3d_octahedral
-  filename: test_{epoch:02d}
+  experiment_name: acdc_4layer_unet
+  filename: acdc-{epoch:02d}-{val_dice_mean:.3f}
   log_every_n_steps: 50
   logger: tensorboard
-  mode: min
-  monitor: val_loss
-  project_name: medmnist_gcnn
-  save_dir: ./checkpoints/test
+  mode: max
+  monitor: val_dice_mean
+  project_name: acdc_gcnn_segmentation
+  save_dir: ./checkpoints
   save_last: true
-  save_top_k: 1
+  save_top_k: 3
   tags:
-  - 3d
+  - acdc
+  - cardiac
+  - segmentation
   - gcnn
-  - medmnist
-  - octahedral
+  - 3d
 model:
   antialiasing:
+    anti_aliasing_kwargs:
+      generator: r-s
+      sample_type: sample
     apply_antialiasing: true
-    equi_constraint: true
-    equi_correction: false
-    iterations: 50
-    mode: analytical
-    smooth_operator: adjacency
-    smoothness_loss_weight: 1.0
-    threshold: 0.0
   dropout_rate: 0.1
-  fully_convolutional: false
   group_config:
     dwn_group_types:
     - - octahedral
@@ -89,55 +92,45 @@ model:
   kernel_sizes:
   - 3
   - 3
-  model_type: gcnn3d
+  model_type: gcnn3d_seg
   num_channels:
   - 1
   - 16
   - 32
-  num_classes: 11
+  num_classes: 4
   num_layers: 2
-  pooling_type: max
-notes:
-  description: Test configuration for quick GPU pipeline validation
-  expected_runtime: 2-3 minutes (GPU)
-  purpose: Development and debugging with GPU
-  validation: Basic GPU functionality check
 test_mode:
-  batch_size: 1
   enabled: true
   fast_dev_run: false
-  limit_test_batches: 0.1
-  limit_train_batches: 0.1
-  limit_val_batches: 0.1
-  max_epochs: 3
-  max_samples: 50
+  limit_test_batches: 1.0
+  limit_train_batches: 0.4
+  limit_val_batches: 1.0
+  max_epochs: 5
 training:
   early_stopping:
-    enabled: false
+    enabled: true
     min_delta: 0.001
-    mode: min
-    monitor: val_loss
-    patience: 5
-  gradient_clip_val: 1.0
-  learning_rate: 0.001
+    mode: max
+    monitor: val_dice_mean
+    patience: 20
   loss:
-    name: cross_entropy
-    params: {}
-  max_epochs: 3
+    name: focal_dice
+    params:
+      alpha: 0.5
+      gamma: 2.0
+      smooth: 1.0e-06
+  max_epochs: 200
   optimizer:
-    name: adam
+    name: adamw
     params:
       betas:
       - 0.9
       - 0.999
       eps: 1e-8
-      lr: 0.001
-      weight_decay: 1e-5
+      lr: 1e-3
+      weight_decay: 1e-4
   scheduler:
-    name: step
+    name: cosine
     params:
-      T_max: 100
-      eta_min: 1e-6
-      gamma: 0.5
-      step_size: 2
-  weight_decay: 1e-5
+      T_max: 200
+      eta_min: 1.0e-06
