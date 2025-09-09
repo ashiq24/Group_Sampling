@@ -7,7 +7,7 @@ under group transformations, specifically designed for 3D medical image analysis
 MATHEMATICAL FOUNDATIONS:
 - Group Theory: Implements equivariance under octahedral group O (24 elements)
 - Cyclic Subgroup: Uses C4 cyclic subgroup (4 elements) for 90° rotations around z-axis
-- Group Convolution: f * ψ where f ∈ L²(G), ψ ∈ L²(G)
+- Group Convolution: f * ψ where f ∈ L^2(G), ψ ∈ L^2(G)
 - Channel Calculation: total_channels = base_channels × group_order
 - Anti-aliasing: Prevents aliasing artifacts during group downsampling
 
@@ -99,7 +99,7 @@ class Gcnn3D(nn.Module):
 
         MATHEMATICAL FOUNDATIONS:
         - Group Equivariance: f(g·x) = g·f(x) for all group elements g
-        - Group Convolution: (f * ψ)(g) = Σ_{h∈G} f(h)ψ(h⁻¹g)
+        - Group Convolution: (f * ψ)(g) = Σ_{h∈G} f(h)ψ(h^-1g)
         - Channel Calculation: total_channels = base_channels × group_order
         - Anti-aliasing: Prevents aliasing artifacts during group downsampling
 
@@ -203,33 +203,23 @@ class Gcnn3D(nn.Module):
             ... )
             >>> x = torch.randn(2, 1, 28, 28, 28)  # (batch, channels, depth, height, width)
             >>> output = model(x)  # (batch, num_classes)
-        """
-
+            
         Mathematical Operations:
-            1. Group Convolution:
-                f * ψ(g⁻¹·) = ∫_G f(h)ψ(g⁻¹h)dh
-                Implemented via rnConv layers with G-equivariant kernels
+        1. Group Convolution:
+           f * psi(g^-1) = sum_G f(h)psi(g^-1h)dh
+           Implemented via rnConv layers with G-equivariant kernels
 
-            2. Spectral Subsampling:
-                S: L²(G) → L²(H) via S = Π_H∘R_G
-                Where R_G is Reynolds projection and Π_H is subgroup restriction
+        2. Spectral Subsampling:
+           S: L^2(G) -> L^2(H) via S = Pi_H o R_G
+           Where R_G is Reynolds projection and Pi_H is subgroup restriction
 
-            3. Anti-Aliasing:
-                X̃ = L1_projector·X̂ before subsampling
-                L1_projector removes high-frequency components beyond Nyquist limit
+        3. Anti-Aliasing:
+           X_tilde = L1_projector * X_hat before subsampling
+           L1_projector removes high-frequency components beyond Nyquist limit
 
-            4. 3D Spatial BlurPool:
-                Implements [Zhang19]'s anti-aliased downsampling for 3D:
-                x↓ = (x * k)↓ where k is 3D low-pass filter
-
-        Forward Pass:
-            Input shape: (B, C, D, H, W) → lifted to (B, C*|G|, D, H, W)
-            For each layer:
-                1. G-equivariant 3D conv + ReLU
-                2. 3D spatial subsampling with blur
-                3. Group subsampling with anti-aliasing
-                4. Dropout
-            Final pooling: Collapse (group × spatial) dimensions via max/mean
+        4. 3D Spatial BlurPool:
+           Implements [Zhang19]'s anti-aliased downsampling for 3D:
+           x_down = (x * k)_down where k is 3D low-pass filter
         """
         super().__init__()
         self.num_layers = num_layers

@@ -6,8 +6,8 @@ providing a unified interface for both same-group and cross-group operations in 
 Equivariant CNNs.
 
 MATHEMATICAL FOUNDATIONS:
-- Group Convolution: f * ψ where f ∈ L²(G), ψ ∈ L²(G)
-- Group Resampling: S: L²(G) → L²(H) where H ⊆ G
+- Group Convolution: f * ψ where f ∈ L^2(G), ψ ∈ L^2(G)
+- Group Resampling: S: L^2(G) → L^2(H) where H ⊆ G
 - Channel Calculation: total_channels = base_channels × group_order
 - Equivariance: Maintains f(g·x) = g·f(x) property
 
@@ -52,8 +52,8 @@ class HybridConvGroupResample3D(nn.Module):
     making it easier to build complex Group Equivariant CNN architectures.
     
     MATHEMATICAL OPERATIONS:
-        1. Group Convolution: f * ψ where f ∈ L²(G), ψ ∈ L²(G)
-        2. Group Resampling: S: L²(G) → L²(H) where H ⊆ G
+        1. Group Convolution: f * ψ where f ∈ L^2(G), ψ ∈ L^2(G)
+        2. Group Resampling: S: L^2(G) → L^2(H) where H ⊆ G
         3. Channel Calculation: total_channels = base_channels × group_order
         4. Equivariance: Maintains f(g·x) = g·f(x) property
         
@@ -103,8 +103,8 @@ class HybridConvGroupResample3D(nn.Module):
             3. Output: (batch, out_channels×|G_out|, depth, height, width)
             
         MATHEMATICAL FOUNDATIONS:
-            - Group Convolution: (f * ψ)(g) = Σ_{h∈G} f(h)ψ(h⁻¹g)
-            - Group Resampling: S: L²(G) → L²(H) where H ⊆ G
+            - Group Convolution: (f * ψ)(g) = Σ_{h∈G} f(h)ψ(h^-1g)
+            - Group Resampling: S: L^2(G) → L^2(H) where H ⊆ G
             - Channel Calculation: total_channels = base_channels × group_order
             - Equivariance: f(g·x) = g·f(x) for all group elements g
             
