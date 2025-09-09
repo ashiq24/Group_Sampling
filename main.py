@@ -820,12 +820,19 @@ def create_trainer(config: Dict[str, Any]) -> Trainer:
     if accelerator == 'cpu':
         devices = 1  # CPU uses 1 core by default
     
+    # Configure strategy to handle unused parameters for complex models
+    strategy = hardware_config.get('strategy', 'auto')
+    if strategy == 'auto' and devices != 1:
+        # Use DDP with unused parameter detection for multi-GPU training
+        from pytorch_lightning.strategies import DDPStrategy
+        strategy = DDPStrategy(find_unused_parameters=True)
+    
     trainer_kwargs = {
         'max_epochs': training_config.get('max_epochs', 100),
         'accelerator': accelerator,
         'devices': devices,
         'precision': hardware_config.get('precision', 32),
-        'strategy': hardware_config.get('strategy', 'auto'),
+        'strategy': strategy,
         'accumulate_grad_batches': hardware_config.get('accumulate_grad_batches', 1),
         'gradient_clip_val': hardware_config.get('gradient_clip_val', 1.0),
         'deterministic': hardware_config.get('deterministic', False),
@@ -962,7 +969,11 @@ def main():
                         continue
                     elif isinstance(value, torch.Tensor):
                         # Clone the tensor to avoid shared memory issues
-                        cleaned_state_dict[key] = value.clone().detach()
+                        # Convert inference tensors to regular tensors
+                        if value.is_inference():
+                            cleaned_state_dict[key] = value.clone().detach().requires_grad_(False)
+                        else:
+                            cleaned_state_dict[key] = value.clone().detach()
                     else:
                         cleaned_state_dict[key] = value
                 

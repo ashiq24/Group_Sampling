@@ -363,8 +363,14 @@ class Gcnn3D(nn.Module):
         self.init_group_order = init_group_order  # Add this for compatibility with tests
 
         self.dropout_layer = nn.Dropout(p=0.3)
-        # We'll create the linear layer after we know the actual output dimensions
-        self.linear_layer = None
+        # Initialize linear layer with expected output features
+        # This prevents dynamic initialization and ensures consistent architecture
+        self.linear_layer = nn.Linear(
+            in_features=self.expected_output_features,  # Use expected features from constructor
+            out_features=num_classes,                   # Output classes for classification
+            dtype=self.dtype,                          # Match model dtype
+            device=self.device                         # Match model device
+        )
         self.num_classes = num_classes
 
     def pooling_3d(self, x):
@@ -537,23 +543,10 @@ class Gcnn3D(nn.Module):
         
         # Step 2: Classification head (if not in fully convolutional mode)
         if not self.fully_convolutional:
-            # Create linear layer on first forward pass if not created yet
-            # This is done dynamically to handle variable input sizes
-            if self.linear_layer is None:
-                actual_features = x.shape[1]  # Get actual number of features from feature extraction
-                # Create linear layer on the same device as input tensor
-                device = x.device
-                self.linear_layer = nn.Linear(
-                    actual_features,      # Input features from feature extraction
-                    self.num_classes,    # Output classes for classification
-                    dtype=self.dtype,    # Match model dtype
-                    device=device        # Match input device
-                )
-            else:
-                # Ensure linear layer is on the same device as input
-                # This handles cases where input is moved to different device
-                if self.linear_layer.weight.device != x.device:
-                    self.linear_layer = self.linear_layer.to(x.device)
+            # Ensure linear layer is on the same device as input
+            # This handles cases where input is moved to different device
+            if self.linear_layer.weight.device != x.device:
+                self.linear_layer = self.linear_layer.to(x.device)
             
             # Apply linear layer for classification
             x = self.linear_layer(x)  # (batch, features) → (batch, num_classes)
