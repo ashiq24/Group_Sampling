@@ -1,6 +1,0 @@
----
-alwaysApply: true
----
-Implement every feature step by step. After implementing each feature, explain  1. What have you chnage? 2. Why have you chnages those? 3. And explain expected behavior  Always felle free to look up online documentations. 
-
-For this project, while running the program, we need activate env 'source activate groups'
