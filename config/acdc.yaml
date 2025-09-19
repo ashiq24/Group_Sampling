@@ -1,0 +1,145 @@
+# ACDC 3D Cardiac MRI Segmentation Configuration
+# 4-layer encoder-decoder Group Equivariant U-Net
+
+# Training configuration
+training:
+  max_epochs: 200
+  early_stopping:
+    enabled: true
+    monitor: "val_dice_mean"
+    mode: "max"
+    patience: 20
+    min_delta: 0.001
+  
+  # Loss configuration
+  loss:
+    name: "focal_dice"
+    params:
+      alpha: 0.5
+      gamma: 2.0
+      smooth: 1e-6
+  
+  # Optimizer configuration
+  optimizer:
+    name: "adamw"
+    params:
+      lr: 1e-3
+      weight_decay: 1e-4
+      betas: [0.9, 0.999]
+      eps: 1e-8
+  
+  # Learning rate scheduler
+  scheduler:
+    name: "cosine"
+    params:
+      T_max: 200
+      eta_min: 1e-6
+
+# Model configuration
+model:
+  model_type: "gcnn3d_seg"
+  num_layers: 2  # Start with 2 layers for testing
+  num_channels: [1, 16, 32]  # Input + 2 layers
+  kernel_sizes: [3, 3]
+  num_classes: 4  # Background, RV, Myocardium, LV
+  dropout_rate: 0.1
+  
+  # Group configuration
+  group_config:
+    dwn_group_types: [
+      ["octahedral", "octahedral"],
+      ["octahedral", "cycle"]
+    ]
+    init_group_order: 24
+    spatial_subsampling_factors: [1, 2]  # Spatial downsampling
+    subsampling_factors: [1, 6]  # Group downsampling
+  
+  # Anti-aliasing configuration
+  antialiasing:
+    apply_antialiasing: true  # Re-enabled for final testing
+    anti_aliasing_kwargs:
+      generator: "r-s"
+      sample_type: "sample"
+
+# Data configuration
+data:
+  dataset_name: "acdc"
+  root: "./datasets/acdc"
+  batch_size: 2
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: true
+  
+  # ACDC specific parameters
+  use_es_ed_only: true
+  train_val_split: 0.8
+  
+  # Preprocessing parameters
+  spacing: [1.5, 1.5, 1.5]  # Isotropic resampling
+  crop_size: [128, 128, 128]  # Fixed crop size
+  normalize: true
+  norm_method: "zscore"  # Z-score normalization
+  
+  # Augmentation parameters
+  augment: true
+  augmentation_params:
+    rotation_range: 15.0
+    scale_range: [0.9, 1.1]
+    flip_probability: 0.5
+    intensity_shift: 0.1
+    intensity_scale: 0.1
+    noise_std: 0.01
+
+# Hardware configuration
+hardware:
+  accelerator: "gpu"
+  gpus: "auto"  # Changed from 'devices' to 'gpus' for compatibility
+  precision: 16  # Mixed precision
+  strategy: "auto"
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1.0
+  deterministic: false
+  benchmark: true
+
+# Logging configuration
+logging:
+  logger: "tensorboard"
+  project_name: "acdc_gcnn_segmentation"
+  experiment_name: "acdc_4layer_unet"
+  save_dir: "./checkpoints"
+  filename: "acdc-{epoch:02d}-{val_dice_mean:.3f}"
+  monitor: "val_dice_mean"
+  mode: "max"
+  save_top_k: 3
+  save_last: true
+  log_every_n_steps: 50
+  tags: ["acdc", "cardiac", "segmentation", "gcnn", "3d"]
+
+# Evaluation configuration
+evaluation:
+  test_after_training: true
+  confusion_matrix: true
+  metrics:
+    - "dice"
+    - "hausdorff95"
+    - "surface_dice"
+
+# Test mode configuration
+test_mode:
+  enabled: true
+  max_epochs: 5
+  fast_dev_run: false
+  limit_train_batches: 0.4  # Fixed: need at least 1 batch (3 * 0.4 = 1.2)
+  limit_val_batches: 1.0  # Fixed: need at least 1 batch
+  limit_test_batches: 1.0  # Fixed: need at least 1 batch
+
+# Advanced configuration
+advanced:
+  initialization:
+    weight_init: "kaiming"
+  mixed_precision:
+    enabled: true
+    precision: 16
+  gradient_accumulation:
+    enabled: false
+    steps: 4

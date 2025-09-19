@@ -5,7 +5,7 @@ mnist/*
 logs/*
 #ignore legacy code
 old_files/*
-
+baselines/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -14,7 +14,8 @@ images/*
 images_bs/*
 # C extensions
 *.so
-
+datasets/*
+test_outputs/*
 # Distribution / packaging
 .Python
 build/

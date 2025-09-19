@@ -1,0 +1,191 @@
+ACDC 3D Cardiac MRI Segmentation: Dataloader + Training Pipeline Steps
+
+Source dataset: Automated Cardiac Diagnosis Challenge (ACDC)
+Reference: https://www.creatis.insa-lyon.fr/Challenge/acdc/databases.html
+
+0) Access and Download **DONE**
+- Visit the ACDC dataset page and request access (accept the license/terms). Once approved, you will receive download links for training and testing sets.
+- Recommended target path: /data/ACDC (or any path you prefer; update config accordingly).
+- Steps (example):
+  - Create dataset root:
+    mkdir -p /data/ACDC && cd /data/ACDC
+  - Place the downloaded archives here (e.g., ACDC_training.zip, ACDC_testing.zip).
+  - Unpack:
+    unzip ACDC_training.zip -d training
+    unzip ACDC_testing.zip  -d testing
+  - Verify structure (patients under training/ and testing/), and that each patient folder contains:
+    - patientXXX_frameYY.nii.gz (ED or ES 3D cine-MRI volume)
+    - patientXXX_frameYY_gt.nii.gz (ground-truth labels) [training only]
+    - Info.cfg (metadata with ED/ES frame ids and pathology group)
+- Typical counts: 150 total exams across 5 balanced groups (challenge training/testing splits are commonly ~100/50 respectively).
+- Credit and citation: Bernard et al., IEEE TMI 2018 (see Citations section below). Always include the official citation in publications.
+
+0a) Alternative: Hugging Face mirror **DONE**
+- A community mirror exists on Hugging Face: https://huggingface.co/datasets/msepulvedagodoy/acdc
+- You can clone/snapshot the dataset to a local folder using huggingface_hub:
+  - pip install huggingface_hub
+  - Python snippet:
+    from huggingface_hub import snapshot_download
+    snapshot_download(repo_id="msepulvedagodoy/acdc", repo_type="dataset", local_dir="/data/ACDC_HF")
+- After download, verify the presence of patient folders and NIfTI files; adjust your config data.root accordingly (e.g., /data/ACDC_HF).
+- Note: This is a community mirror; if any files are missing or structures differ, prefer the official source at https://www.creatis.insa-lyon.fr/Challenge/acdc/databases.html.
+
+1) Download and Dataset Layout **DONE**
+- Request/download ACDC (150 exams) and unpack.
+- Recommended layout (common in public forks):
+  ACDC/
+    training/
+      patientXXX/
+        patientXXX_frameYY.nii.gz           # 3D volume (short-axis stack) at ED/ES
+        patientXXX_frameYY_gt.nii.gz        # 3D GT labels (LV cavity, RV cavity, Myocardium)
+        Info.cfg                            # metadata (ED/ES frames, patient group)
+    testing/                                # same structure, no labels
+- Labels (commonly): 0=background, 1=RV, 2=Myocardium (MYO), 3=LV.
+
+2) Preprocessing (3D MRI specifics) **DONE**
+- Read volumes/labels via nibabel or SimpleITK; preserve affine and spacing.
+- Extract voxel spacing (dx, dy, dz) from header; typical in-plane ≈ 1.37–1.68 mm, slice 5–8 mm (+/- gap).
+- Resample to near-isotropic spacing (e.g., 1.5 x 1.5 x 1.5 mm) using:
+  - Trilinear for images, nearest-neighbor for labels.
+  - SimpleITK or torchio.Resample.
+- Intensity normalization per-volume:
+  - Z-score within foreground mask or robust z-score (clamp to [p2, p98] then normalize).
+  - Alternatively min-max to [0, 1]. Keep consistent between train/val/test.
+- Optional bias field correction (N4) if needed.
+- Crop/pad to a consistent size (e.g., 128 x 128 x D or patch-based like 128^3) around heart region:
+  - Compute tight bounding box from label (train) or Otsu-based foreground mask (inference).
+  - Center-crop/pad to target size.
+- Save preprocessed tensors to disk (optional caching) as .pt or .npy to speed up training.
+
+3) Train/Val/Test Splits **DONE**
+- Use provided training/testing split from ACDC challenge.
+- Within training, create an 80/20 split per pathology group (NOR, MINF, DCM, HCM, RV) to preserve distribution.
+- Optionally stratify by patient group using Info.cfg.
+
+4) Data Augmentation (3D) **DONE**
+- Spatial: random rotations (±10–15°), small scalings (±10%), flips along short-axis (careful with anatomical conventions), elastic deformations.
+- Intensity: gamma, brightness/contrast jitter, Gaussian noise.
+- Ensure label-safe ops (nearest for labels). Libraries: MONAI, TorchIO, batchgenerators, or custom transforms.
+
+5) PyTorch Dataset (ACDCDataset) **DONE**
+- __init__(root, split, spacing=(1.5,1.5,1.5), crop_size=(128,128,128), use_cache=False, transforms=None)
+- index building:
+  - Parse patient folders, read Info.cfg for ED/ES frame ids; map to image/label file paths.
+  - Option: treat each (patient, frame) pair as one sample (ED, ES) to double samples.
+- __getitem__(idx):
+  - Load volume and label (nii.gz) → numpy → torch.
+  - Resample to target spacing (if not cached) with correct interpolation.
+  - Normalize intensities.
+  - Optional crop/pad/patch extract to crop_size.
+  - Apply transforms.
+  - Return dict: { 'image': FloatTensor [C=1, D, H, W], 'label': LongTensor [D, H, W], 'spacing': (dx,dy,dz), 'id': str }
+- __len__(): number of samples.
+
+6) Collate + Sampler **DONE**
+- Default collate works if shapes are uniform (after crop/pad).
+- If variable depth, pad to max depth in batch or use fixed-depth patches.
+- Sampler can be WeightedRandomSampler for class balance (RV/MYO/LV) if needed.
+
+7) Lightning DataModule (ACDCDataModule) **DONE**
+- __init__(cfg): accepts config:
+  data:
+    root: /data/ACDC
+    spacing: [1.5,1.5,1.5]
+    crop_size: [128,128,128]
+    batch_size: 2
+    num_workers: 8
+    augment: true
+- setup(stage): build ACDCDataset for train/val/test with appropriate transforms.
+- train_dataloader/val_dataloader/test_dataloader: return DataLoader with pin_memory=True, persistent_workers=True, drop_last for train.
+
+8) Model Integration (this repo) **DONE**
+- Use models/model_handler.py → get_3d_segmentation_model to instantiate `Gcnn3DSegmentation`.
+- Example:
+  model = get_3d_segmentation_model(
+    input_channel=1,
+    num_channels=[1, 16, 32, 64, 128],
+    num_classes=4,                      # background + 3 structures
+    apply_antialiasing=True             # enable spectral anti-aliasing in group subsampling
+  )
+
+9) Loss Functions **TODO**
+- Multi-class segmentation: Dice + CrossEntropy (or Focal) combined:
+  - dice_loss = SoftDiceLoss(num_classes=4, ignore_index=None)
+  - ce_loss = nn.CrossEntropyLoss(weight=class_weights, ignore_index=None)
+  - total_loss = α * ce + β * dice (e.g., α=0.5, β=0.5)
+- Optionally boundary loss, Tversky/FocalTversky for class imbalance.
+
+10) Metrics **TODO**
+- Per-class Dice, mean Dice; Hausdorff-95 optional.
+- Compute on full 3D volume in validation (no aug), using argmax.
+
+11) Training Script (PyTorch Lightning) **TODO**
+- Parse YAML config (trainer, data, model, optim, sched).
+- Seed everything; set cudnn.benchmark=True for speed.
+- Instantiate DataModule (ACDCDataModule) and Model (LightningModule wrapper around Gcnn3DSegmentation):
+  - forward(x): logits [B, C, D, H, W]
+  - training_step: compute loss, log scalars
+  - validation_step: compute Dice per class, log
+  - configure_optimizers: AdamW or Adam; schedulers (OneCycleLR, CosineAnnealing)
+- Trainer settings:
+  - accelerator='gpu', devices=[0,1,...] or auto
+  - precision=16 for mixed precision (bf16/amp)
+  - strategy='ddp' for multi-GPU
+  - callbacks: ModelCheckpoint(monitor='val/dice_mean', mode='max'), EarlyStopping(optional), LearningRateMonitor
+  - logger: TensorBoard/CSV
+- Run:
+  - source activate groups
+  - python main.py --config config/acdc.yaml
+
+12) Inference + Post-processing **TODO**
+- Sliding-window inference if memory-limited; overlap=0.5, Gaussian blending.
+- Softmax → argmax to labels.
+- Optional post-processing: keep largest 3D component per class (especially RV), hole filling.
+- Save as NIfTI with original affine using SimpleITK/nibabel to match ACDC format.
+
+13) Example Config (config/acdc.yaml) **TODO**
+- Create config/acdc.yaml for 4-layer encoder-decoder GCNN segmentation
+- Configure appropriate group types, subsampling factors, and spatial downsampling
+- Set up proper data paths and preprocessing parameters
+
+14) Sanity Checks **TODO**
+- Verify input/label alignment after resampling (overlays).
+- Inspect intensity histograms post-normalization.
+- Confirm shapes throughout encoder/decoder; skip concatenations preserve group order.
+- Unit test small subset (2–3 patients); overfit on 1 case to validate pipeline.
+
+15) Performance Tips **TODO**
+- Cache preprocessed tensors per (patient, frame) to avoid repeated resampling.
+- Use AMP (precision=16) and gradient accumulation if needed.
+- Tune patch/crop size to fit GPU memory; consider 2D slices if resource constrained.
+- Monitor class-wise Dice; imbalance strategies (sampling, loss weights) as needed.
+
+16) Citations
+- ACDC dataset: see above reference link.
+- Use the official citation: Bernard et al., IEEE TMI (2018), doi: 10.1109/TMI.2018.2837502
+
+## Additional Implementation Notes
+
+**Data Format Requirements:**
+- Input: patientXXX_frameYY.nii.gz (3D cardiac MRI volumes)
+- Target: patientXXX_frameYY_gt.nii.gz (3D segmentation masks)
+- Ignore: patientXXX_4d.nii.gz (temporal data - not used for now)
+- Format: Channel-first (B, 1, H, W, D) for PyTorch compatibility
+
+**Preprocessing Pipeline:**
+- Resample to isotropic spacing (1.5mm³)
+- Z-score normalization per volume
+- Center crop/pad to fixed size (128×128×D)
+- Apply 3D augmentations (rotation, scaling, intensity)
+
+**Model Architecture:**
+- 4-layer encoder-decoder U-Net with group equivariant convolutions
+- Group downsampling/upsampling along group axis
+- Spatial downsampling/upsampling along spatial axes
+- Skip connections with proper group order handling
+
+**Training Configuration:**
+- Loss: Combined Dice + CrossEntropy
+- Optimizer: AdamW with cosine annealing
+- Metrics: Per-class Dice, mean Dice
+- Mixed precision training (FP16)

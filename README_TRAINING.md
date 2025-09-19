@@ -44,7 +44,7 @@ This directory contains a complete training pipeline for MedMNIST datasets using
 
 3. **Verify GSampling installation**:
    ```bash
-   python -c "from gsampling.models.g_cnn_3d import Gcnn3D; print('✅ GCNN models available')"
+   python -c "from models.g_cnn_3d import Gcnn3D; print('✅ GCNN models available')"
    ```
 
 ## 📊 Available Datasets
