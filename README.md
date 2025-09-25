@@ -1,4 +1,4 @@
-# Group Downsampling with Equivariant Anti-Aliasing 🌀📉
+# Group Downsampling with Equivariant Anti-Aliasing 
 **Bridging Signal Processing and Group Equivariant Deep Learning**  *"Sampling theory meets symmetry preservation"*
 
 [![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?logo=PyTorch&logoColor=white)](https://pytorch.org)
